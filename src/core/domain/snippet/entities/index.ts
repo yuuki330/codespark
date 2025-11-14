@@ -19,3 +19,13 @@ export type Snippet = {
   createdAt: Date
   updatedAt: Date
 }
+
+export type LibraryCategory = 'PERSONAL' | 'TEAM' | 'PROJECT'
+
+export type SnippetLibrary = {
+  id: LibraryId
+  name: string
+  description?: string | null
+  isReadOnly: boolean
+  category: LibraryCategory
+}

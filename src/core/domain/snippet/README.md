@@ -8,6 +8,7 @@ snippet/
 ├── domain-values/   # SnippetId, LibraryId, TagName など値オブジェクト
 ├── converters/      # createSnippet, updateSnippet などエンティティ変換ロジック
 ├── errors/          # ValidationError などドメイン専用エラー
+├── ports/           # SnippetDataAccessAdapter など永続層との境界
 └── utils/           # バリデーション補助や共通処理
 ```
 

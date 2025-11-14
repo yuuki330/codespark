@@ -1,4 +1,4 @@
-import type { Snippet } from '../entities'
+import type { Snippet, SnippetLibrary } from '../entities'
 import type { SnippetId } from '../domain-values'
 
 /**
@@ -10,4 +10,11 @@ export interface SnippetDataAccessAdapter {
   getById(id: SnippetId): Promise<Snippet | null>
   save(snippet: Snippet): Promise<void>
   delete(id: SnippetId): Promise<void>
+}
+
+/**
+ * ライブラリメタデータ（Personal / Team 等）を取得するためのアダプタ。
+ */
+export interface SnippetLibraryDataAccessAdapter {
+  getLibraries(): Promise<SnippetLibrary[]>
 }

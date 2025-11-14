@@ -29,3 +29,5 @@ API キーや機密 URL は `.env` または Tauri の環境読み込み機構�
 - 足りない情報があれば、関連ドキュメント(@docs/tasks.md 等)を参照して補完する。
 - 出力は日本語で簡潔に。
 - GitHub の Pull Request 説明・タイトルは必ず日本語で記載する。
+- Issue を解決する PR を作成する場合は、PR 本文に該当 Issue を参照（`Closes #<number>` など）として必ず記載する。
+- GitHub の Pull Request 説明・タイトルは必ず日本語で記載する。

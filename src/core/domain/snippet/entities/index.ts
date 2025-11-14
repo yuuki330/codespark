@@ -29,3 +29,14 @@ export type SnippetLibrary = {
   isReadOnly: boolean
   category: LibraryCategory
 }
+
+export type ThemePreference = 'light' | 'dark' | 'system'
+
+/**
+ * 将来的な UI 設定を想定したプレースホルダ。
+ */
+export type UserPreferences = {
+  defaultLibraryId: LibraryId
+  theme: ThemePreference
+  globalShortcut?: string | null
+}

@@ -11,6 +11,6 @@
  */
 export * from './entities'
 export * from './domain-values'
-export * from './factories'
+export * from './converters'
 export * from './errors'
 export * from './utils'

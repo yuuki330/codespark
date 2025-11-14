@@ -1,5 +1,7 @@
 /**
- * SnippetId や TagName など、ドメイン上の値オブジェクトをここで管理する。
- * 具体的な実装は後続 Issue (#4 など) で追加する。
+ * ドメイン層で使い回す識別子・タグなどのプリミティブ型。
+ * それぞれ string を直接扱うより、値の意味を型名で明示できるようにする。
  */
-export {}
+export type SnippetId = string
+export type LibraryId = string
+export type TagName = string

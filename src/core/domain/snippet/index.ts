@@ -10,7 +10,7 @@
  * `src/core/domain/snippet` を参照するだけで必要な型／関数へアクセスできる。
  */
 export * from './entities'
-export * from './value-objects'
+export * from './domain-values'
 export * from './factories'
 export * from './errors'
 export * from './utils'

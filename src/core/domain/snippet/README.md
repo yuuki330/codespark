@@ -5,7 +5,7 @@
 ```
 snippet/
 ├── entities/        # Snippet エンティティや関連構造体
-├── value-objects/   # SnippetId, LibraryId, TagName など値オブジェクト
+├── domain-values/   # SnippetId, LibraryId, TagName など値オブジェクト
 ├── factories/       # createSnippet, updateSnippet などの生成系関数
 ├── errors/          # ValidationError などドメイン専用エラー
 └── utils/           # バリデーション補助や共通処理

@@ -389,6 +389,10 @@ type Snippet = {
 
 アプリ起動時に検索バーへフォーカスし、下部に「最近使った & お気に入り」を並べる。入力に応じて即時フィルタ、`Enter` でトップ候補をコピー、`↓ / ↑` で移動…といった操作を前提に、ユースケース層で「最上位に表示すべきスニペット」をきちんと決めておく。
 
+### 7.5 ライブラリ / タグ複合フィルタ
+
+UI 側では Personal / Team など複数ライブラリをトグルできるチップと、タグごとの複合フィルタを提供する。状態は `SearchSnippetsUseCase` にそのまま渡され、ライブラリ ID 配列・タグ配列で条件を掛け合わせる。All を選択した場合は全ライブラリが検索対象になり、タグはすべて一致したスニペットのみを結果に含める。フィルタ状態は `GetTopSnippetsForEmptyQueryUseCase` にも引き継がれるため、空クエリでもコンテキストに沿った候補だけが提示される。
+
 ---
 
 ## 8. 次のアクション
@@ -396,3 +400,13 @@ type Snippet = {
 - `src/core/domain/snippet/Snippet.ts` で拡張フィールドを定義する。
 - `src/core/domain/snippet/SnippetDataAccessAdapter.ts` と `src/core/usecases/SearchSnippets.ts` を TypeScript 実装し、`App.tsx` からロジックを切り出す。
 - Personal / Team スコープの UX を固めたうえで、必要に応じて Project など追加カテゴリを段階的に公開する。
+
+## 9. アーキテクチャ図
+
+Mermaid で各レイヤの依存関係をまとめた図を [docs/architecture-diagram.md](docs/architecture-diagram.md) に掲載している。React UI・ユースケース・ドメイン・データアクセス・Tauri コマンド・OS ストレージ間のフローを確認したい場合に参照すること。
+
+## 10. 開発コマンドとテスト
+
+- `npm run dev` : Vite 開発サーバーを起動し、フィルタ UI や検索体験を即座に確認する。
+- `npm run build` : TypeScript 型チェックと Vite の本番ビルドを走らせる。
+- `npm run test` : Vitest 実行。`SearchSnippetsUseCase` のスコアリングやフィルタリングをユニットテストで検証し、shortcut/タグ/ライブラリ条件の退行を防ぐ。

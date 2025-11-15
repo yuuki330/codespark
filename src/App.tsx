@@ -1,9 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import type { Snippet } from './core/domain/snippet'
+import type { LibraryId, Snippet, SnippetLibrary, TagName } from './core/domain/snippet'
 import { InMemorySnippetDataAccessAdapter } from './core/data-access/snippet'
 import { TauriClipboardGateway } from './core/platform'
-import { CopySnippetUseCase } from './core/usecases'
+import {
+  CopySnippetUseCase,
+  GetTopSnippetsForEmptyQueryUseCase,
+  SearchSnippetsUseCase,
+} from './core/usecases'
 
 const createSeedDate = (offsetDays: number) => {
   const base = new Date(Date.UTC(2024, 0, 1, 0, 0, 0))
@@ -86,8 +90,13 @@ const highlightTimeoutMs = 180
 const App: React.FC = () => {
   const [query, setQuery] = useState('')
   const [snippets, setSnippets] = useState<Snippet[]>([])
+  const [filteredSnippets, setFilteredSnippets] = useState<Snippet[]>([])
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [copiedSnippetId, setCopiedSnippetId] = useState<string | null>(null)
+  const [libraries, setLibraries] = useState<SnippetLibrary[]>([])
+  const [selectedLibraryIds, setSelectedLibraryIds] = useState<LibraryId[]>([])
+  const [selectedTags, setSelectedTags] = useState<TagName[]>([])
+  const [dataVersion, setDataVersion] = useState(0)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const snippetGatewayRef = useRef(new InMemorySnippetDataAccessAdapter(initialSnippets))
   const clipboardGatewayRef = useRef(new TauriClipboardGateway())
@@ -99,29 +108,107 @@ const App: React.FC = () => {
       }),
     []
   )
+  const getTopSnippetsUseCase = useMemo(
+    () => new GetTopSnippetsForEmptyQueryUseCase({ snippetGateway: snippetGatewayRef.current }),
+    []
+  )
+  const searchSnippetsUseCase = useMemo(
+    () =>
+      new SearchSnippetsUseCase({
+        snippetGateway: snippetGatewayRef.current,
+        emptyQueryStrategy: params =>
+          getTopSnippetsUseCase.execute({
+            libraryIds: params.libraryIds,
+            tags: params.tags,
+            limit: params.limit,
+          }),
+      }),
+    [getTopSnippetsUseCase]
+  )
 
   useEffect(() => {
     snippetGatewayRef.current.getAll().then(setSnippets)
   }, [])
 
   useEffect(() => {
+    snippetGatewayRef.current.getLibraries().then(setLibraries)
+  }, [])
+
+  useEffect(() => {
     inputRef.current?.focus()
   }, [])
 
-  const filteredSnippets = useMemo(() => {
-    const keyword = query.trim().toLowerCase()
-    if (!keyword) return snippets
+  useEffect(() => {
+    let cancelled = false
 
-    return snippets.filter(snippet => {
-      return (
-        snippet.title.toLowerCase().includes(keyword) ||
-        snippet.tags.some(tag => tag.toLowerCase().includes(keyword)) ||
-        snippet.body.toLowerCase().includes(keyword)
-      )
+    searchSnippetsUseCase
+      .execute({
+        query,
+        libraryIds: selectedLibraryIds,
+        tags: selectedTags,
+      })
+      .then(results => {
+        if (cancelled) return
+        setFilteredSnippets(results.map(result => result.snippet))
+      })
+      .catch(error => {
+        console.error('failed to search snippets', error)
+        if (!cancelled) {
+          setFilteredSnippets([])
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [query, selectedLibraryIds, selectedTags, searchSnippetsUseCase, dataVersion])
+
+  const availableTags = useMemo(() => {
+    const tagSet = new Set<TagName>()
+    snippets.forEach(snippet => {
+      snippet.tags.forEach(tag => tagSet.add(tag))
     })
-  }, [query, snippets])
+    return Array.from(tagSet).sort((a, b) => a.localeCompare(b))
+  }, [snippets])
 
   const filteredCount = filteredSnippets.length
+  const isAllLibrariesSelected = selectedLibraryIds.length === 0
+
+  const toggleLibrarySelection = (libraryId: LibraryId) => {
+    setSelectedLibraryIds(current => {
+      if (current.includes(libraryId)) {
+        return current.filter(id => id !== libraryId)
+      }
+      return [...current, libraryId]
+    })
+  }
+
+  const handleSelectAllLibraries = () => {
+    setSelectedLibraryIds([])
+  }
+
+  const toggleTagSelection = (tag: TagName) => {
+    setSelectedTags(current => {
+      if (current.includes(tag)) {
+        return current.filter(activeTag => activeTag !== tag)
+      }
+      return [...current, tag]
+    })
+  }
+
+  const clearTagFilter = () => setSelectedTags([])
+
+  const buildFilterButtonStyle = (active: boolean) => ({
+    fontSize: '11px',
+    borderRadius: '999px',
+    border: '1px solid',
+    borderColor: active ? 'rgba(59, 130, 246, 0.9)' : 'rgba(148, 163, 184, 0.4)',
+    background: active ? 'rgba(37, 99, 235, 0.3)' : 'transparent',
+    color: active ? '#e2e8f0' : '#94a3b8',
+    padding: '2px 10px',
+    cursor: 'pointer',
+    transition: 'background 120ms ease-out, border-color 120ms ease-out',
+  })
 
   useEffect(() => {
     setSelectedIndex(current => {
@@ -132,11 +219,12 @@ const App: React.FC = () => {
 
   useEffect(() => {
     setSelectedIndex(0)
-  }, [query])
+  }, [query, selectedLibraryIds, selectedTags])
 
   const refreshSnippets = useCallback(async () => {
     const next = await snippetGatewayRef.current.getAll()
     setSnippets(next)
+    setDataVersion(version => version + 1)
   }, [])
 
   const handleCopySnippet = useCallback(
@@ -285,6 +373,80 @@ const App: React.FC = () => {
               fontSize: '13px',
             }}
           />
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span
+              style={{
+                color: '#94a3b8',
+                fontSize: '10px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+              }}
+            >
+              Libraries
+            </span>
+            <button
+              type='button'
+              style={buildFilterButtonStyle(isAllLibrariesSelected)}
+              onClick={handleSelectAllLibraries}
+            >
+              All
+            </button>
+            {libraries.map(library => {
+              const isActive = selectedLibraryIds.includes(library.id)
+              return (
+                <button
+                  key={library.id}
+                  type='button'
+                  style={buildFilterButtonStyle(isActive)}
+                  onClick={() => toggleLibrarySelection(library.id)}
+                >
+                  {library.name}
+                </button>
+              )
+            })}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span
+              style={{
+                color: '#94a3b8',
+                fontSize: '10px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+              }}
+            >
+              Tags
+            </span>
+            {availableTags.length === 0 ? (
+              <span style={{ color: '#64748b' }}>No tags</span>
+            ) : (
+              availableTags.map(tag => {
+                const isActive = selectedTags.includes(tag)
+                return (
+                  <button
+                    key={tag}
+                    type='button'
+                    style={buildFilterButtonStyle(isActive)}
+                    onClick={() => toggleTagSelection(tag)}
+                  >
+                    {tag}
+                  </button>
+                )
+              })
+            )}
+            {selectedTags.length > 0 ? (
+              <button
+                type='button'
+                style={buildFilterButtonStyle(false)}
+                onClick={clearTagFilter}
+              >
+                Clear
+              </button>
+            ) : null}
+          </div>
         </div>
 
         <div

@@ -389,6 +389,10 @@ type Snippet = {
 
 アプリ起動時に検索バーへフォーカスし、下部に「最近使った & お気に入り」を並べる。入力に応じて即時フィルタ、`Enter` でトップ候補をコピー、`↓ / ↑` で移動…といった操作を前提に、ユースケース層で「最上位に表示すべきスニペット」をきちんと決めておく。
 
+### 7.5 ライブラリ / タグ複合フィルタ
+
+UI 側では Personal / Team など複数ライブラリをトグルできるチップと、タグごとの複合フィルタを提供する。状態は `SearchSnippetsUseCase` にそのまま渡され、ライブラリ ID 配列・タグ配列で条件を掛け合わせる。All を選択した場合は全ライブラリが検索対象になり、タグはすべて一致したスニペットのみを結果に含める。フィルタ状態は `GetTopSnippetsForEmptyQueryUseCase` にも引き継がれるため、空クエリでもコンテキストに沿った候補だけが提示される。
+
 ---
 
 ## 8. 次のアクション
@@ -397,7 +401,25 @@ type Snippet = {
 - `src/core/domain/snippet/SnippetDataAccessAdapter.ts` と `src/core/usecases/SearchSnippets.ts` を TypeScript 実装し、`App.tsx` からロジックを切り出す。
 - Personal / Team スコープの UX を固めたうえで、必要に応じて Project など追加カテゴリを段階的に公開する。
 
-## 9. デスクトップビルド手順
+## 9. アーキテクチャ図
+
+Mermaid で各レイヤの依存関係をまとめた図を [docs/architecture-diagram.md](docs/architecture-diagram.md) に掲載している。React UI・ユースケース・ドメイン・データアクセス・Tauri コマンド・OS ストレージ間のフローを確認したい場合に参照すること。
+
+## 10. 開発コマンドとテスト
+
+- `npm run dev` : Vite 開発サーバーを起動し、フィルタ UI や検索体験を即座に確認する。
+- `npm run build` : TypeScript 型チェックと Vite の本番ビルドを走らせる。
+- `npm run test` : Vitest 実行。`SearchSnippetsUseCase` のスコアリングやフィルタリングをユニットテストで検証し、shortcut/タグ/ライブラリ条件の退行を防ぐ。
+
+## 11. UI 操作ヒントとショートカット
+
+- React 側の UI は検索バー・フィルタ・スニペットリストを `src/components/` 配下に分割し、メンテナンスしやすい構造にしている。`SearchInput` が初期フォーカスとフォーカス制御を担い、`SnippetList` は検索結果/空クエリ用候補を同じ描画ロジックで切り替える。
+- 空クエリ時は `GetTopSnippetsForEmptyQueryUseCase` の結果（お気に入り + 最近使用）を優先的に表示し、「候補が無い」状態を明示するメッセージを出す。
+- ライブラリ切替は `⌘1`（All）/`⌘2`（Personal）/`⌘3`（Team）…… のショートカットに対応し、ショートカット操作でも UI のトグルが同期する。Windows/Linux では `Ctrl` キーで同じ操作が可能。
+- コピー失敗などの異常はアラートではなく通知トーストに集約し、複数イベントが続いてもスタックとして確認できる。通知は数秒で自動的に消える。
+
+
+## 12. デスクトップビルド手順
 
 1. 依存関係をセットアップ: `npm install` を実行して Node/Tauri CLI を同期する。
 2. 開発時は `npm run tauri dev` で Vite と Tauri を同時起動し、OS API の動作を都度確認する。

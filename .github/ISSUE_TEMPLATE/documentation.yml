@@ -1,0 +1,64 @@
+name: 📚 Documentation Improvement
+description: ドキュメントの誤り・不足・改善提案
+title: "[Docs] 改善したい箇所の概要を書く"
+labels:
+  - documentation
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ドキュメントの改善提案ありがとうございます！  
+        誤記・不足・改善点など、気づいた点を教えていただけると助かります 🙇
+
+  - type: input
+    id: location
+    attributes:
+      label: 対象ページ・箇所（Location）
+      description: どのページまたはファイルの、どのあたりかを教えてください。
+      placeholder: 例) README.md の「セットアップ」セクション / docs/usage.md の 2.1 節
+    validations:
+      required: true
+
+  - type: dropdown
+    id: doc_type
+    attributes:
+      label: 種別（Type）
+      options:
+        - 誤字・脱字
+        - 内容の誤り
+        - 情報不足
+        - 構成・説明が分かりにくい
+        - その他
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: 現在の記述（Current Description）
+      description: 問題があると思う現在の記述を貼り付けてください（可能であれば）。
+      placeholder: |
+        例)
+        > Run `npm start` to build the project.
+
+    validations:
+      required: false
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: 提案内容（Suggested Change）
+      description: どのように書き換えるとよさそうか、案があれば教えてください。
+      placeholder: |
+        例)
+        > Run `npm install` to install dependencies, then run `npm start` to start the dev server.
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 補足（Additional Context）
+      description: その他の背景や、関連する Issue などがあれば記載してください。
+      validations:
+        required: false

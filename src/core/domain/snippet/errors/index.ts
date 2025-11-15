@@ -31,3 +31,10 @@ export class SnippetValidationError extends Error {
     this.issues = issues
   }
 }
+
+export class SnippetNotFoundError extends Error {
+  constructor(snippetId: string) {
+    super(`snippet ${snippetId} not found`)
+    this.name = 'SnippetNotFoundError'
+  }
+}

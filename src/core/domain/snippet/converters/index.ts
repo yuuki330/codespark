@@ -6,11 +6,11 @@ import {
 } from '../errors'
 
 /**
- * createSnippet や updateSnippet など、入力 DTO からドメインエンティティへ
+ * constructSnippet や applySnippetUpdate など、入力 DTO からドメインエンティティへ
  * 変換するロジックをここにまとめる。
  */
 
-export type CreateSnippetInput = {
+export type ConstructSnippetInput = {
   id: SnippetId
   title: string
   body: string
@@ -26,20 +26,12 @@ export type CreateSnippetInput = {
   updatedAt: Date
 }
 
-type SnippetValidationPayload = {
-  title: string
-  body: string
-  tags: TagName[]
-  createdAt: Date
-  updatedAt: Date
-}
-
-const validateSnippetDomainRules = (
-  payload: SnippetValidationPayload
-): SnippetValidationIssue[] => {
+export const constructSnippet = (input: ConstructSnippetInput): Snippet => {
   const issues: SnippetValidationIssue[] = []
+  const title = input.title?.trim() ?? ''
+  const body = input.body?.trim() ?? ''
 
-  if (!payload.title) {
+  if (!title) {
     issues.push({
       code: 'TITLE_EMPTY',
       field: 'title',
@@ -47,7 +39,7 @@ const validateSnippetDomainRules = (
     })
   }
 
-  if (!payload.body) {
+  if (!body) {
     issues.push({
       code: 'BODY_EMPTY',
       field: 'body',
@@ -55,7 +47,8 @@ const validateSnippetDomainRules = (
     })
   }
 
-  const duplicates = findDuplicateTags(payload.tags)
+  const tags = [...(input.tags ?? [])]
+  const duplicates = findDuplicateTags(tags)
 
   if (duplicates.length > 0) {
     issues.push({
@@ -65,8 +58,8 @@ const validateSnippetDomainRules = (
     })
   }
 
-  const createdAtTime = payload.createdAt?.getTime()
-  const updatedAtTime = payload.updatedAt?.getTime()
+  const createdAtTime = input.createdAt?.getTime()
+  const updatedAtTime = input.updatedAt?.getTime()
 
   if (
     Number.isNaN(createdAtTime) ||
@@ -86,22 +79,6 @@ const validateSnippetDomainRules = (
       message: 'updatedAt must be greater than or equal to createdAt',
     })
   }
-
-  return issues
-}
-
-export const createSnippet = (input: CreateSnippetInput): Snippet => {
-  const title = input.title?.trim() ?? ''
-  const body = input.body?.trim() ?? ''
-  const tags = [...(input.tags ?? [])]
-
-  const issues = validateSnippetDomainRules({
-    title,
-    body,
-    tags,
-    createdAt: input.createdAt,
-    updatedAt: input.updatedAt,
-  })
 
   if (issues.length > 0) {
     throw new SnippetValidationError(issues)
@@ -124,113 +101,6 @@ export const createSnippet = (input: CreateSnippetInput): Snippet => {
   }
 }
 
-type UpdatableSnippetField =
-  | 'title'
-  | 'body'
-  | 'shortcut'
-  | 'description'
-  | 'tags'
-  | 'language'
-  | 'isFavorite'
-  | 'usageCount'
-  | 'lastUsedAt'
-  | 'libraryId'
-
-export type UpdateSnippetChanges = Partial<Pick<Snippet, UpdatableSnippetField>>
-
-export type UpdateSnippetOptions = {
-  updatedAt?: Date
-}
-
-export const updateSnippet = (
-  snippet: Snippet,
-  changes: UpdateSnippetChanges,
-  options: UpdateSnippetOptions = {}
-): Snippet => {
-  const nextTitleSource =
-    hasOwn(changes, 'title') && changes.title !== undefined
-      ? changes.title
-      : snippet.title
-  const title = (nextTitleSource ?? '').trim()
-
-  const nextBodySource =
-    hasOwn(changes, 'body') && changes.body !== undefined
-      ? changes.body
-      : snippet.body
-  const body = (nextBodySource ?? '').trim()
-
-  const tags = hasOwn(changes, 'tags')
-    ? [...(changes.tags ?? snippet.tags)]
-    : [...snippet.tags]
-
-  const shortcut = hasOwn(changes, 'shortcut')
-    ? changes.shortcut === undefined
-      ? snippet.shortcut ?? null
-      : changes.shortcut
-    : snippet.shortcut ?? null
-
-  const description = hasOwn(changes, 'description')
-    ? changes.description === undefined
-      ? snippet.description ?? null
-      : changes.description
-    : snippet.description ?? null
-
-  const language = hasOwn(changes, 'language')
-    ? changes.language === undefined
-      ? snippet.language ?? null
-      : changes.language
-    : snippet.language ?? null
-
-  const isFavorite = hasOwn(changes, 'isFavorite')
-    ? changes.isFavorite ?? snippet.isFavorite
-    : snippet.isFavorite
-
-  const usageCount = hasOwn(changes, 'usageCount')
-    ? changes.usageCount ?? snippet.usageCount
-    : snippet.usageCount
-
-  const lastUsedAt = hasOwn(changes, 'lastUsedAt')
-    ? changes.lastUsedAt === undefined
-      ? snippet.lastUsedAt ?? null
-      : changes.lastUsedAt
-    : snippet.lastUsedAt ?? null
-
-  const libraryId = hasOwn(changes, 'libraryId')
-    ? changes.libraryId ?? snippet.libraryId
-    : snippet.libraryId
-
-  const updatedAt = options.updatedAt ?? new Date()
-
-  const nextSnippet: Snippet = {
-    ...snippet,
-    title,
-    body,
-    tags,
-    shortcut,
-    description,
-    language,
-    isFavorite,
-    usageCount,
-    lastUsedAt,
-    libraryId,
-    updatedAt,
-  }
-
-  const issues = validateSnippetDomainRules({
-    title: nextSnippet.title,
-    body: nextSnippet.body,
-    tags: nextSnippet.tags,
-    createdAt: nextSnippet.createdAt,
-    updatedAt: nextSnippet.updatedAt,
-  })
-
-  if (issues.length > 0) {
-    throw new SnippetValidationError(issues)
-  }
-
-  return nextSnippet
-}
-
 const findDuplicateTags = (tags: TagName[]): TagName[] => {
   const seen = new Set<TagName>()
   const duplicates = new Set<TagName>()
@@ -247,8 +117,3 @@ const findDuplicateTags = (tags: TagName[]): TagName[] => {
 
   return Array.from(duplicates)
 }
-
-const hasOwn = <K extends keyof UpdateSnippetChanges>(
-  changes: UpdateSnippetChanges,
-  key: K,
-): boolean => Object.prototype.hasOwnProperty.call(changes, key)

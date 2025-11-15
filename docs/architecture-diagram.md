@@ -3,39 +3,44 @@
 Mermaid で表現した CodeSpark の主要レイヤとデータフロー。
 
 ```mermaid
-flowchart LR
+flowchart TD
 
-  subgraph UI["React UI (Vite)"]
+  subgraph UI["UI Layer (React)"]
     App["App.tsx / Components"]
     App --> Hooks["Hooks / Context"]
   end
 
-  subgraph Usecases["Usecases"]
+  subgraph Usecases["Usecase Layer"]
+    direction TB
     Search["SearchSnippetsUseCase"]
     Copy["CopySnippetUseCase"]
     CRUD["Create/Update/Delete UseCases"]
   end
 
-  subgraph Domain["Domain"]
+  subgraph Domain["Domain Layer (Entities / Rules)"]
+    direction TB
     Snippet["Snippet Entities & Value Objects"]
     Factory["constructSnippet / applySnippetUpdate"]
-    Validation["Validation / Errors"]
-    Snippet --- Factory
+    Validation["SnippetValidationError / Issues"]
+    Factory --> Snippet
+    Snippet --- Validation
     Factory --- Validation
   end
 
-  subgraph DataAccess["Data Access Adapters"]
+  subgraph DataAccess["Interface Adapter Layer"]
+    direction TB
     FileAdapter["FileSnippetDataAccessAdapter"]
     LibraryPort["SnippetLibraryDataAccessAdapter"]
   end
 
-  subgraph Tauri["Tauri (Rust) Commands"]
+  subgraph Tauri["Tauri (Rust) Layer"]
+    direction TB
     ClipboardCmd["copy_to_clipboard"]
     StoreRead["read_snippet_store"]
     StoreWrite["write_snippet_store / ensure_snippet_store_dir"]
   end
 
-  subgraph Storage["OS Storage"]
+  subgraph Storage["Infrastructure Layer"]
     JsonFile["snippets.json (AppData)"]
     Clipboard["OS Clipboard"]
   end
@@ -43,8 +48,8 @@ flowchart LR
   App -->|依存| Hooks -->|呼び出し| Search
   Hooks --> Copy
   Hooks --> CRUD
-  Search -->|ドメイン操作| Snippet
-  Copy --> Snippet
+  Search -->|参照| Snippet
+  Copy --> Factory
   CRUD --> Factory
   Factory --> Snippet
   Snippet --> FileAdapter
@@ -54,11 +59,12 @@ flowchart LR
   StoreWrite --> JsonFile
   Copy -->|invoke| ClipboardCmd --> Clipboard
   LibraryPort -.-> FileAdapter
+  ClipboardCmd --> Clipboard
 ```
 
 ## 読み方
 - **UI → Usecase**: React からフックを介して各ユースケースを呼び出し、検索・コピー・CRUD を実行する。
-- **Usecase → Domain**: ユースケースは `constructSnippet` / `applySnippetUpdate` などのファクトリを経由して `Snippet` エンティティを生成・更新し、バリデーションを行う。
+- **Usecase → Domain**: ユースケースはドメインファクトリ（`constructSnippet` / `applySnippetUpdate`）を呼び、同じ層にある Validation/Errors とともにエンティティを検証・生成する。
 - **Domain → DataAccess**: ドメインは `SnippetDataAccessAdapter` 経由で FileSnippetDataAccessAdapter を利用する。
 - **DataAccess → Tauri**: アダプタは `invoke` で Tauri コマンド（JSON 読み書き・ディレクトリ作成）を呼び出し、OS ファイルへ委譲する。
 - **Copy Usecase → Clipboard**: コピー用ユースケースは Tauri のクリップボードコマンドを呼んで OS クリップボードへ書き込む。

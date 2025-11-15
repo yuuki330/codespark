@@ -1,0 +1,56 @@
+name: ❓ Question / Help
+description: 質問・相談・使い方の確認など
+title: "[Question] 知りたいことの概要を書く"
+labels:
+  - question
+body:
+  - type: markdown
+    attributes:
+      value: |
+        質問ありがとうございます！  
+        できるだけ具体的に書いていただけると、正確にお答えしやすくなります 💬
+
+  - type: input
+    id: summary
+    attributes:
+      label: 概要（Summary）
+      description: 質問内容を一文で教えてください。
+      placeholder: 例) 認証エラー時のリトライ処理の実装方針について相談したい
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: 詳細（Details）
+      description: 何について、どのようなことを知りたいですか？
+      placeholder: |
+        例)
+        - どの API を使うとよいか分からない
+        - サンプルコードを参考にしたが、うまく動作しない部分がある
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: 試したこと（What I've Tried）
+      description: すでに試した方法や調査したことがあれば書いてください。
+      placeholder: |
+        例)
+        - ドキュメントの「認証」セクションを一通り読んだ
+        - サンプルコード A, B を試したが、トークンの更新でエラーになった
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 環境情報（Environment）
+      description: 必要であれば、利用環境を記載してください。
+      placeholder: |
+        例)
+        - バージョン: v1.2.3
+        - 言語/フレームワーク: Node.js 20 / React 18
+    validations:
+      required: false

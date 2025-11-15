@@ -8,6 +8,17 @@ import {
   GetTopSnippetsForEmptyQueryUseCase,
   SearchSnippetsUseCase,
 } from './core/usecases'
+import type { Notification } from './components'
+import {
+  FilterChip,
+  FilterGroup,
+  NotificationCenter,
+  SearchInput,
+  type SearchInputHandle,
+  SnippetList,
+} from './components'
+
+import './App.css'
 
 const createSeedDate = (offsetDays: number) => {
   const base = new Date(Date.UTC(2024, 0, 1, 0, 0, 0))
@@ -60,6 +71,7 @@ const initialSnippets: Snippet[] = [
     tags: ['python', 'logging'],
     language: 'python',
     shortcut: 'pylog',
+    isFavorite: true,
   }),
   createSnippet({
     id: 'snippet-ts-fetch-wrapper',
@@ -86,6 +98,7 @@ const initialSnippets: Snippet[] = [
 ]
 
 const highlightTimeoutMs = 180
+const notificationDurationMs = 4000
 
 const App: React.FC = () => {
   const [query, setQuery] = useState('')
@@ -97,7 +110,8 @@ const App: React.FC = () => {
   const [selectedLibraryIds, setSelectedLibraryIds] = useState<LibraryId[]>([])
   const [selectedTags, setSelectedTags] = useState<TagName[]>([])
   const [dataVersion, setDataVersion] = useState(0)
-  const inputRef = useRef<HTMLInputElement | null>(null)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const searchInputRef = useRef<SearchInputHandle | null>(null)
   const snippetGatewayRef = useRef(new InMemorySnippetDataAccessAdapter(initialSnippets))
   const clipboardGatewayRef = useRef(new TauriClipboardGateway())
   const copySnippetUseCase = useMemo(
@@ -126,6 +140,14 @@ const App: React.FC = () => {
     [getTopSnippetsUseCase]
   )
 
+  const pushNotification = useCallback((type: Notification['type'], message: string) => {
+    const id = `${type}-${Date.now()}-${Math.random().toString(16).slice(2)}`
+    setNotifications(current => [...current, { id, type, message }])
+    window.setTimeout(() => {
+      setNotifications(current => current.filter(notification => notification.id !== id))
+    }, notificationDurationMs)
+  }, [])
+
   useEffect(() => {
     snippetGatewayRef.current.getAll().then(setSnippets)
   }, [])
@@ -135,7 +157,7 @@ const App: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    inputRef.current?.focus()
+    searchInputRef.current?.focus()
   }, [])
 
   useEffect(() => {
@@ -173,6 +195,7 @@ const App: React.FC = () => {
 
   const filteredCount = filteredSnippets.length
   const isAllLibrariesSelected = selectedLibraryIds.length === 0
+  const isEmptyQuery = query.trim().length === 0
 
   const toggleLibrarySelection = (libraryId: LibraryId) => {
     setSelectedLibraryIds(current => {
@@ -197,18 +220,6 @@ const App: React.FC = () => {
   }
 
   const clearTagFilter = () => setSelectedTags([])
-
-  const buildFilterButtonStyle = (active: boolean) => ({
-    fontSize: '11px',
-    borderRadius: '999px',
-    border: '1px solid',
-    borderColor: active ? 'rgba(59, 130, 246, 0.9)' : 'rgba(148, 163, 184, 0.4)',
-    background: active ? 'rgba(37, 99, 235, 0.3)' : 'transparent',
-    color: active ? '#e2e8f0' : '#94a3b8',
-    padding: '2px 10px',
-    cursor: 'pointer',
-    transition: 'background 120ms ease-out, border-color 120ms ease-out',
-  })
 
   useEffect(() => {
     setSelectedIndex(current => {
@@ -235,23 +246,40 @@ const App: React.FC = () => {
         await refreshSnippets()
       } catch (error) {
         console.error('failed to copy snippet', error)
-        window.alert('クリップボードへのコピーに失敗しました')
+        const message =
+          error instanceof Error ? error.message : 'クリップボードへのコピーに失敗しました'
+        pushNotification('error', `コピーできませんでした: ${message}`)
       } finally {
         setTimeout(() => {
           setCopiedSnippetId(current => (current === snippet.id ? null : current))
         }, highlightTimeoutMs)
       }
     },
-    [copySnippetUseCase, refreshSnippets]
+    [copySnippetUseCase, pushNotification, refreshSnippets]
   )
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      const modifierActive = event.metaKey || event.ctrlKey
+      if (modifierActive && /^[1-9]$/.test(event.key)) {
+        const digit = Number(event.key)
+        if (digit === 1) {
+          event.preventDefault()
+          handleSelectAllLibraries()
+          return
+        }
+        const index = digit - 2
+        const targetLibrary = libraries[index]
+        if (targetLibrary) {
+          event.preventDefault()
+          setSelectedLibraryIds([targetLibrary.id])
+          return
+        }
+      }
+
       if (filteredCount === 0) return
-      const isNextByLetter =
-        (event.key === 'j' || event.key === 'J') && (event.metaKey || event.ctrlKey)
-      const isPrevByLetter =
-        (event.key === 'k' || event.key === 'K') && (event.metaKey || event.ctrlKey)
+      const isNextByLetter = (event.key === 'j' || event.key === 'J') && modifierActive
+      const isPrevByLetter = (event.key === 'k' || event.key === 'K') && modifierActive
 
       if (event.key === 'ArrowDown' || isNextByLetter) {
         event.preventDefault()
@@ -276,284 +304,84 @@ const App: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [filteredCount, filteredSnippets, handleCopySnippet, selectedIndex])
+  }, [filteredCount, filteredSnippets, handleCopySnippet, libraries, selectedIndex])
 
-  const selectedSnippet = filteredSnippets[selectedIndex]
+  const selectedSnippet = filteredSnippets[selectedIndex] ?? null
 
   return (
-    <div
-      style={{
-        height: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'radial-gradient(circle at top, #1e293b, #020617)',
-        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-        color: '#e5e7eb',
-      }}
-    >
-      <div
-        style={{
-          width: '640px',
-          maxWidth: '90vw',
-          background: 'rgba(15, 23, 42, 0.9)',
-          borderRadius: '18px',
-          boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
-          padding: '16px 20px 12px',
-          border: '1px solid rgba(148, 163, 184, 0.3)',
-          backdropFilter: 'blur(12px)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div
-              style={{
-                fontSize: '18px',
-                fontWeight: 600,
-                letterSpacing: '0.04em',
-              }}
-            >
-              CodeSpark
+    <>
+      <div className='app-shell'>
+        <div className='command-surface'>
+          <div className='command-header'>
+            <div>
+              <div className='command-header__title'>CodeSpark</div>
+              <div className='command-header__caption'>Local snippet launcher (React prototype)</div>
             </div>
-            <div
-              style={{
-                fontSize: '11px',
-                color: '#9ca3af',
-              }}
-            >
-              Local snippet launcher (React prototype)
-            </div>
-          </div>
-          <div
-            style={{
-              fontSize: '11px',
-              borderRadius: '999px',
-              border: '1px solid rgba(148, 163, 184, 0.5)',
-              padding: '4px 8px',
-              color: '#e5e7eb',
-              opacity: 0.7,
-            }}
-          >
-            ⌘⇧Space
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '6px 10px',
-            borderRadius: '12px',
-            background: '#020617',
-            border: '1px solid rgba(55, 65, 81, 0.8)',
-          }}
-        >
-          <input
-            ref={inputRef}
-            type='text'
-            placeholder='Search snippets…'
-            value={query}
-            onChange={event => setQuery(event.target.value)}
-            style={{
-              flex: 1,
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              color: '#e5e7eb',
-              fontSize: '13px',
-            }}
-          />
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span
-              style={{
-                color: '#94a3b8',
-                fontSize: '10px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-              }}
-            >
-              Libraries
-            </span>
-            <button
-              type='button'
-              style={buildFilterButtonStyle(isAllLibrariesSelected)}
-              onClick={handleSelectAllLibraries}
-            >
-              All
-            </button>
-            {libraries.map(library => {
-              const isActive = selectedLibraryIds.includes(library.id)
-              return (
-                <button
-                  key={library.id}
-                  type='button'
-                  style={buildFilterButtonStyle(isActive)}
-                  onClick={() => toggleLibrarySelection(library.id)}
-                >
-                  {library.name}
-                </button>
-              )
-            })}
+            <div className='shortcut-badge'>⌘⇧Space</div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span
-              style={{
-                color: '#94a3b8',
-                fontSize: '10px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-              }}
-            >
-              Tags
-            </span>
-            {availableTags.length === 0 ? (
-              <span style={{ color: '#64748b' }}>No tags</span>
-            ) : (
-              availableTags.map(tag => {
-                const isActive = selectedTags.includes(tag)
+          <SearchInput ref={searchInputRef} value={query} onChange={setQuery} />
+
+          <div className='filters'>
+            <FilterGroup label='Libraries'>
+              <FilterChip active={isAllLibrariesSelected} onClick={handleSelectAllLibraries} title='⌘1'>
+                All
+              </FilterChip>
+              {libraries.map((library, index) => {
+                const shortcut = `⌘${index + 2}`
                 return (
-                  <button
+                  <FilterChip
+                    key={library.id}
+                    active={selectedLibraryIds.includes(library.id)}
+                    onClick={() => toggleLibrarySelection(library.id)}
+                    title={`${shortcut} で ${library.name} に切り替え`}
+                  >
+                    {library.name}
+                  </FilterChip>
+                )
+              })}
+            </FilterGroup>
+
+            <FilterGroup label='Tags'>
+              {availableTags.length === 0 ? (
+                <span className='filter-group__label' style={{ textTransform: 'none' }}>
+                  タグがまだありません
+                </span>
+              ) : (
+                availableTags.map(tag => (
+                  <FilterChip
                     key={tag}
-                    type='button'
-                    style={buildFilterButtonStyle(isActive)}
+                    active={selectedTags.includes(tag)}
                     onClick={() => toggleTagSelection(tag)}
                   >
                     {tag}
-                  </button>
-                )
-              })
-            )}
-            {selectedTags.length > 0 ? (
-              <button
-                type='button'
-                style={buildFilterButtonStyle(false)}
-                onClick={clearTagFilter}
-              >
-                Clear
-              </button>
-            ) : null}
+                  </FilterChip>
+                ))
+              )}
+              {selectedTags.length > 0 ? (
+                <FilterChip onClick={clearTagFilter}>Clear</FilterChip>
+              ) : null}
+            </FilterGroup>
+          </div>
+
+          <div className='snippet-panel'>
+            <SnippetList
+              snippets={filteredSnippets}
+              selectedSnippetId={selectedSnippet?.id ?? null}
+              copiedSnippetId={copiedSnippetId}
+              onSelect={handleCopySnippet}
+              onHover={index => setSelectedIndex(index)}
+              mode={isEmptyQuery ? 'suggestion' : 'search'}
+              emptyMessage={
+                isEmptyQuery ? 'お気に入りや最近使用のスニペットがまだありません' : '一致するスニペットがありません'
+              }
+            />
           </div>
         </div>
-
-        <div
-          style={{
-            marginTop: '4px',
-            maxHeight: '260px',
-            overflow: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          {filteredSnippets.length === 0 ? (
-            <div
-              style={{
-                fontSize: '12px',
-                color: '#6b7280',
-                padding: '12px 4px',
-              }}
-            >
-              No snippets found.
-            </div>
-          ) : (
-            filteredSnippets.map((snippet, index) => {
-              const isSelected = selectedSnippet?.id === snippet.id
-              const isCopied = copiedSnippetId === snippet.id
-              const background = isCopied
-                ? 'rgba(22, 163, 74, 0.55)'
-                : isSelected
-                  ? 'rgba(59, 130, 246, 0.25)'
-                  : 'transparent'
-
-              return (
-                <div
-                  key={snippet.id}
-                  onClick={() => handleCopySnippet(snippet)}
-                  onMouseEnter={() => setSelectedIndex(index)}
-                  style={{
-                    padding: '8px 8px',
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                    transition: 'background 120ms ease-out, transform 80ms ease-out',
-                    background,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: '13px',
-                      fontWeight: 500,
-                      marginBottom: '2px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <span>{snippet.title}</span>
-                    {snippet.shortcut ? (
-                      <span
-                        style={{
-                          fontSize: '10px',
-                          color: '#cbd5f5',
-                          border: '1px solid rgba(148, 163, 184, 0.4)',
-                          borderRadius: '999px',
-                          padding: '1px 6px',
-                        }}
-                      >
-                        {snippet.shortcut}
-                      </span>
-                    ) : null}
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '6px',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    {snippet.tags.map(tag => (
-                      <span
-                        key={tag}
-                        style={{
-                          fontSize: '10px',
-                          padding: '2px 6px',
-                          borderRadius: '999px',
-                          background: 'rgba(31, 41, 55, 0.9)',
-                          color: '#9ca3af',
-                        }}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '11px',
-                      color: '#9ca3af',
-                      marginTop: '4px',
-                    }}
-                  >
-                    {snippet.body.replace(/\s+/g, ' ').slice(0, 80)}…
-                  </div>
-                </div>
-              )
-            })
-          )}
-        </div>
       </div>
-    </div>
+
+      <NotificationCenter notifications={notifications} />
+    </>
   )
 }
 

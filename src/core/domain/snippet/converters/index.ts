@@ -6,11 +6,11 @@ import {
 } from '../errors'
 
 /**
- * createSnippet や updateSnippet など、入力 DTO からドメインエンティティへ
+ * constructSnippet や applySnippetUpdate など、入力 DTO からドメインエンティティへ
  * 変換するロジックをここにまとめる。
  */
 
-export type CreateSnippetInput = {
+export type ConstructSnippetInput = {
   id: SnippetId
   title: string
   body: string
@@ -26,7 +26,7 @@ export type CreateSnippetInput = {
   updatedAt: Date
 }
 
-export const createSnippet = (input: CreateSnippetInput): Snippet => {
+export const constructSnippet = (input: ConstructSnippetInput): Snippet => {
   const issues: SnippetValidationIssue[] = []
   const title = input.title?.trim() ?? ''
   const body = input.body?.trim() ?? ''

@@ -18,3 +18,11 @@ export interface SnippetDataAccessAdapter {
 export interface SnippetLibraryDataAccessAdapter {
   getLibraries(): Promise<SnippetLibrary[]>
 }
+
+/**
+ * クリップボードへアクセスするためのゲートウェイ。
+ * OS ごとの挙動はインフラ層で実装し、ユースケースからは抽象化された API として利用する。
+ */
+export interface ClipboardGateway {
+  copyText(text: string): Promise<void>
+}

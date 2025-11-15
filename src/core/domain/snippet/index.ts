@@ -2,7 +2,7 @@
  * Snippet ドメインモジュールのエントリポイント。
  * - entities: Snippet などのエンティティ定義
  * - value-objects: SnippetId, TagName などの値オブジェクト
- * - factories: createSnippet などの生成関数
+ * - factories: constructSnippet などの生成関数
  * - errors: ドメイン専用エラー
  * - utils: バリデータなどの補助ロジック
  *

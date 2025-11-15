@@ -18,7 +18,7 @@ flowchart LR
 
   subgraph Domain["Domain"]
     Snippet["Snippet Entities & Value Objects"]
-    Factory["createSnippet / updateSnippet"]
+    Factory["constructSnippet / applySnippetUpdate"]
     Validation["Validation / Errors"]
     Snippet --- Factory
     Factory --- Validation
@@ -58,7 +58,7 @@ flowchart LR
 
 ## 読み方
 - **UI → Usecase**: React からフックを介して各ユースケースを呼び出し、検索・コピー・CRUD を実行する。
-- **Usecase → Domain**: ユースケースは `createSnippet` / `updateSnippet` などのファクトリを経由して `Snippet` エンティティを生成・更新し、バリデーションを行う。
+- **Usecase → Domain**: ユースケースは `constructSnippet` / `applySnippetUpdate` などのファクトリを経由して `Snippet` エンティティを生成・更新し、バリデーションを行う。
 - **Domain → DataAccess**: ドメインは `SnippetDataAccessAdapter` 経由で FileSnippetDataAccessAdapter を利用する。
 - **DataAccess → Tauri**: アダプタは `invoke` で Tauri コマンド（JSON 読み書き・ディレクトリ作成）を呼び出し、OS ファイルへ委譲する。
 - **Copy Usecase → Clipboard**: コピー用ユースケースは Tauri のクリップボードコマンドを呼んで OS クリップボードへ書き込む。

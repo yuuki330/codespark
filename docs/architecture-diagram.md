@@ -4,18 +4,19 @@ Mermaid で表現した CodeSpark の主要レイヤとデータフロー。
 
 ```mermaid
 flowchart LR
-  subgraph UI[React UI (Vite)]
+
+  subgraph UI["React UI (Vite)"]
     App["App.tsx / Components"]
     App --> Hooks["Hooks / Context"]
   end
 
-  subgraph Usecases[Usecases]
+  subgraph Usecases["Usecases"]
     Search["SearchSnippetsUseCase"]
     Copy["CopySnippetUseCase"]
     CRUD["Create/Update/Delete UseCases"]
   end
 
-  subgraph Domain[Domain]
+  subgraph Domain["Domain"]
     Snippet["Snippet Entities & Value Objects"]
     Factory["createSnippet / updateSnippet"]
     Validation["Validation / Errors"]

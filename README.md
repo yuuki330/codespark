@@ -396,3 +396,10 @@ type Snippet = {
 - `src/core/domain/snippet/Snippet.ts` で拡張フィールドを定義する。
 - `src/core/domain/snippet/SnippetDataAccessAdapter.ts` と `src/core/usecases/SearchSnippets.ts` を TypeScript 実装し、`App.tsx` からロジックを切り出す。
 - Personal / Team スコープの UX を固めたうえで、必要に応じて Project など追加カテゴリを段階的に公開する。
+
+## 9. デスクトップビルド手順
+
+1. 依存関係をセットアップ: `npm install` を実行して Node/Tauri CLI を同期する。
+2. 開発時は `npm run tauri dev` で Vite と Tauri を同時起動し、OS API の動作を都度確認する。
+3. 本番ビルドは `npm run tauri build` を利用し、macOS は Xcode Command Line Tools、Windows は WebView2 Runtime（Evergreen）と Visual C++ 再頒布パッケージを満たしていることを確認する。
+4. macOS/Windows 共に生成バイナリで検索・コピー・ファイル永続化が動作するか実機確認し、WebView2 未導入環境では Microsoft 配布のインストーラで事前に更新してもらう旨を README/PR に記す。

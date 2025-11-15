@@ -410,3 +410,10 @@ Mermaid で各レイヤの依存関係をまとめた図を [docs/architecture-d
 - `npm run dev` : Vite 開発サーバーを起動し、フィルタ UI や検索体験を即座に確認する。
 - `npm run build` : TypeScript 型チェックと Vite の本番ビルドを走らせる。
 - `npm run test` : Vitest 実行。`SearchSnippetsUseCase` のスコアリングやフィルタリングをユニットテストで検証し、shortcut/タグ/ライブラリ条件の退行を防ぐ。
+
+## 11. UI 操作ヒントとショートカット
+
+- React 側の UI は検索バー・フィルタ・スニペットリストを `src/components/` 配下に分割し、メンテナンスしやすい構造にしている。`SearchInput` が初期フォーカスとフォーカス制御を担い、`SnippetList` は検索結果/空クエリ用候補を同じ描画ロジックで切り替える。
+- 空クエリ時は `GetTopSnippetsForEmptyQueryUseCase` の結果（お気に入り + 最近使用）を優先的に表示し、「候補が無い」状態を明示するメッセージを出す。
+- ライブラリ切替は `⌘1`（All）/`⌘2`（Personal）/`⌘3`（Team）…… のショートカットに対応し、ショートカット操作でも UI のトグルが同期する。Windows/Linux では `Ctrl` キーで同じ操作が可能。
+- コピー失敗などの異常はアラートではなく通知トーストに集約し、複数イベントが続いてもスタックとして確認できる。通知は数秒で自動的に消える。

@@ -1,0 +1,6 @@
+# .github/ISSUE_TEMPLATE/config.yml
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 質問・雑談用（Discord / Slack など）
+    url: https://example.com/community
+    about: 軽い質問や雑談はコミュニティチャットもご利用ください。

@@ -1,0 +1,18 @@
+{
+  "default": null,
+  "permission": [
+    {
+      "identifier": "snippet-store",
+      "description": "Allow snippet JSON storage commands",
+      "commands": {
+        "allow": [
+          "read_snippet_store",
+          "write_snippet_store",
+          "snippet_store_exists",
+          "ensure_snippet_store_dir"
+        ],
+        "deny": []
+      }
+    }
+  ]
+}

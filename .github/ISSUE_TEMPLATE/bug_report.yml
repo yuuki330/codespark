@@ -1,0 +1,98 @@
+name: 🐛 Bug Report
+description: バグ・不具合の報告用テンプレート
+title: "[Bug] 短い問題の概要を書く"
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        バグ報告ありがとうございます！  
+        可能な範囲で記入いただけると、対応がスムーズになります 🙏
+
+  - type: input
+    id: summary
+    attributes:
+      label: 概要（Summary）
+      description: 発生している問題を一文で説明してください。
+      placeholder: 例) ログインボタンを押してもダッシュボードに遷移しない
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順（Steps to Reproduce）
+      description: どのような手順で問題が再現しますか？番号付きで書いてください。
+      placeholder: |
+        1. ログイン画面を開く
+        2. メールアドレスとパスワードを入力
+        3. 「ログイン」ボタンをクリック
+        4. 画面が切り替わらず、コンソールにエラーが出る
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待される動作（Expected Behavior）
+      description: 本来どのように動作してほしいですか？
+      placeholder: 例) ログイン成功時に /dashboard に遷移してほしい
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の動作（Actual Behavior）
+      description: 実際にはどうなりましたか？エラーメッセージがあれば貼り付けてください。
+      placeholder: 例) 画面が変わらず、コンソールに "500 Internal Server Error" と表示される
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: 発生頻度（Frequency）
+      description: どのくらいの頻度で発生しますか？
+      options:
+        - 毎回発生する
+        - 時々発生する
+        - まれに発生する
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 環境情報（Environment）
+      description: 可能な範囲で、利用環境を記入してください。
+      placeholder: |
+        - OS: macOS 14.0 / Windows 11 / Ubuntu 22.04
+        - ブラウザ: Chrome 120 / Firefox 120
+        - アプリのバージョン: v1.2.3
+        - その他: Node.js 20, Python 3.11 など
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: ログ・スクリーンショット（Logs / Screenshots）
+      description: 関連するログやスクリーンショットがあれば貼り付けてください。
+      placeholder: |
+        ```bash
+        (ログやエラーメッセージ)
+        ```
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 事前チェック
+      options:
+        - label: 既存の Issue を検索しましたが、同様の報告はありませんでした
+          required: true
+        - label: 再現手順をできる範囲で簡略化しました（できれば）
+          required: false

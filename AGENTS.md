@@ -1,38 +1,188 @@
-# Repository Guidelines
+# AGENTS.md – Coding Agent Guidelines (for CodeSpark)
 
-## プロジェクト構成とモジュール配置
-CodeSpark は Vite + React のフロントエンドと Rust 製の Tauri シェルで構成されます。UI ロジックとスタイルは `src/` 配下（`main.tsx`、`App.tsx`、`App.css`、および将来の `components/` ディレクトリ）に置き、静的アセットは `public/` へ配置します。デスクトップ固有コードは `src-tauri/` 内にあり、`src/main.rs` でコマンドを公開し、`tauri.conf.json` と `capabilities/` で権限やバンドル設定を管理します。機能別の画像や JSON は `src/assets/<feature>/` にまとめ、相対インポートを短く保ってください。
+このドキュメントは **Codex などの自動コーディングエージェント向けの作業規約**です。
+人間開発者向けの情報は `./README.md` を参照してください。
 
-## ビルド・テスト・開発コマンド
-- `npm install` : Node 依存と Tauri CLI を同期します。
-- `npm run dev` : Vite 開発サーバーで React UI をホットリロードします。
-- `npm run tauri dev` : Vite サーバーを再利用しつつ Tauri シェルを起動し、OS API を確認します。
-- `npm run build` : `tsc` で型チェック後、`dist/` に最適化バンドルを出力します。
-- `npm run preview` : 生成済み `dist/` をローカルで配信し、本番挙動を確認します。
-- `npm run tauri build` : `src-tauri/tauri.conf.json` に基づき署名つきデスクトップパッケージを生成します。
+---
 
-## コーディングスタイルと命名規則
-TypeScript は 2 スペースインデント、セミコロン省略、単一引用符を推奨します。React コンポーネントは PascalCase (`SnippetList`) 、フックは `use` から始め、小さな UI 断片は `src/components/` に分離してください。共有色や余白は CSS 変数またはモジュール CSS へ逃がし、インラインスタイルは一時的な実験に留めます。Rust 側は `snake_case` ファイル／関数名を守り、JS から呼び出すフロント API では camelCase に変換します。
+# 1. プロジェクト構成とモジュール配置
 
-## テスト指針
-現状テストは未導入のため、UI には Vitest + React Testing Library を同居ファイル形式（`App.test.tsx`）で追加してください。Tauri コマンドは `src-tauri/src/lib.rs` に単体テストを書き、`cargo test` で検証します。検索フィルタリング、クリップボード失敗ハンドリング、権限チェックなど主要シナリオをカバーし、再現手順を README へ記しておくとレビューが容易です。機能開発時は、その機能の期待動作を確認するテストを必ず同時に作成または更新し、実装とテストの整合性を維持してください。
+CodeSpark は以下の技術で構成されています：
 
-## コミットとプルリクエスト
-コミットメッセージは Conventional Commits (`feat: add clipboard guard` など) を参考にし、意図と影響範囲を一読で把握できるようにします。PR 説明には変更概要、影響するコマンド、関連 Issue、UI 変更時のスクリーンショット／動画、Tauri 設定差分を添付してください。ローカルで `npm run build` と必要な `cargo test` を通し、必要なら手動検証結果をチェックリスト化します。
+* **フロントエンド**：Vite + React（`./src/`）
+* **デスクトップシェル**：Tauri + Rust（`./src-tauri/`）
 
-## セキュリティと設定のヒント
-API キーや機密 URL は `.env` または Tauri の環境読み込み機構に限定し、リポジトリへコミットしないでください。`src-tauri/capabilities/*.json` で不要な権限を無効化し、macOS 公証向けに最小権限を維持しましょう。クリップボードやファイルシステムへ触れる処理にはユーザー通知や明示的なトリガーを設け、レビュー時には該当パスを PR 説明で強調してください。
+ディレクトリ配置ルール：
 
-## このプロジェクトでのCodexの振る舞い
-- まず最初に @README.md と @docs/require.md 、@docs/design.md を読み、要件・制約・ビルド・設計方法を把握する。
-- 以降のタスクは、上記3ファイルの内容を前提に計画・実行する。
-- 足りない情報があれば、関連ドキュメント(@docs/tasks.md 等)を参照して補完する。
-- 出力は日本語で簡潔に。
-- GitHub の Pull Request 説明・タイトルは必ず日本語で記載する。
-- Issue を解決する PR を作成する場合は、PR 本文に該当 Issue を参照（`Closes #<number>` など）として必ず記載する。
-- PR を勝手にマージせず、必ずユーザーの確認や明示的な指示を得てから取り込む。
-- レポートは自然な日本語で行うこと。
-- 造語禁止。**必ず一般的な技術用語、広く使われる日本語を使うこと**。
-- 不自然な翻訳禁止。**必ず一般的な日本語翻訳を行い、不自然な日本語になりそうな場合は元の英単語を使うこと**。
-- 省略禁止。**必ずこのレポート単体で理解できるようにすること**。
-- 機能・要件の変更やコードの追加・修正を行った場合は、関連ドキュメントおよび README.md を必ず更新する。
+* UI ロジック、状態管理、スタイル：`src/`
+
+  * エントリ：`main.tsx`, `App.tsx`, `App.css`
+  * 将来的なコンポーネント：`src/components/`
+* 静的アセット：`public/`
+* 機能別の画像や JSON：`src/assets/<feature>/`
+* Tauri コマンド：`src-tauri/src/main.rs`
+* 権限・バンドル設定：`src-tauri/tauri.conf.json`, `src-tauri/capabilities/`
+
+**注意（重要）**
+`src-tauri/capabilities/*.json` は破壊的変更が反映されます。
+Codex は **変更前に必ずその意図を説明し、ユーザー承認を得ること**。
+
+---
+
+# 2. エージェントの行動優先順位（最重要）
+
+エージェントは以下の順に優先して判断してください：
+
+1. **安全性・セキュリティの確保**
+
+   * 機密情報の生成・埋め込み禁止
+   * OS API の安易な利用禁止
+   * ファイル操作を行う変更は必ずユーザーに確認する
+
+2. **既存仕様・設計・コードスタイルの尊重**
+
+   * 新規ライブラリ・依存関係の追加は禁止（提案のみ）
+
+3. **最小限・局所的な変更**
+
+   * 1 PR = 1 目的
+   * 不要なリファクタリングを混ぜない
+
+4. **読みやすいコードとドキュメント更新**
+
+   * 仕様変更・ファイル追加があれば必ず関連ドキュメントを更新
+
+---
+
+# 3. ビルド・テスト・開発コマンド
+
+```
+npm install              # Node 依存のインストール
+npm run dev             # Vite 開発サーバー
+npm run tauri dev       # Tauri シェル + UI 開発
+npm run build           # tsc チェック + Vite 本番ビルド
+npm run preview         # dist/ のプレビュー配信
+npm run tauri build     # デスクトップアプリパッケージ生成
+
+cargo test              # Rust テスト
+```
+
+Codex は **これ以外のコマンドを提案・実行しない**。
+
+---
+
+# 4. コーディングスタイルと命名規則
+
+## TypeScript
+
+* インデント：2 スペース
+* セミコロン：省略
+* 文字列：単一引用符 `' '`
+* コンポーネント：PascalCase
+* フック：`useXxx`
+* スタイル：CSS 変数または CSS Modules を推奨
+* インラインスタイルは暫定利用のみにする
+
+## Rust
+
+* 命名：`snake_case`
+* JS から呼ぶ API（Tauri commands）は camelCase へ変換
+* モジュール配置：`src-tauri/src/*` に機能別で整理
+
+**禁止**：Codex が独断で `package.json` や `Cargo.toml` に依存を追加すること。
+
+---
+
+# 5. テスト指針
+
+**現状テストは未導入 → 今後追加する方針**。
+
+推奨：
+
+### フロントエンド
+
+* Vitest + React Testing Library
+* テストファイル：同居形式（例：`App.test.tsx`）
+
+### Rust / Tauri
+
+* `src-tauri/src/lib.rs` に単体テスト
+* 実行：`cargo test`
+
+テスト追加ルール：
+
+* 新機能追加 → 必ずテストも同時に作成
+* 既存機能変更 → 該当テストを適宜更新
+* 主要シナリオ（検索、フィルタ、クリップボード、権限チェック）は必ずテスト化する
+
+---
+
+# 6. コミット・Pull Request のルール
+
+### コミット
+
+* Conventional Commits 推奨：
+
+  * `feat: add clipboard guard`
+  * `fix: correct filter logic`
+
+### Pull Request
+
+必ず以下を含める：
+
+1. 概要（何を、なぜ）
+2. 影響範囲（UI / Tauri / config / API）
+3. 関連 Issue（`Closes #xx`）
+4. UI 変更 → スクリーンショット or 動画
+5. Rust 変更 → JS 側の動作確認手順
+6. ビルド結果 (`npm run build`, `cargo test`) の通過確認
+7. 必要なら QA 手順
+
+**禁止**：
+
+* PR を勝手にマージ
+* 1 PR に複数の目的を混ぜる
+* コード変更だけしてドキュメント更新を忘れる
+
+---
+
+# 7. セキュリティと設定ルール
+
+* API キー・機密情報は必ず `.env` または Tauri の secure API 経由で読み込む
+* `capabilities/` の権限は最小限に維持する
+* ファイルシステムアクセスは慎重に扱う
+* クリップボード操作など OS API に触れる場合は PR で明示する
+
+---
+
+# 8. Codex の具体的な振る舞いルール
+
+Codex は次に従う：
+
+1. **最初に読むファイル**
+
+   * `./README.md`
+   * `./docs/require.md`
+   * `./docs/design.md`
+
+2. 追加情報は以下から補完：
+
+   * `./docs/tasks.md`
+   * `./docs/*.md`
+
+3. 出力は自然で読みやすい日本語で書く
+
+4. 造語禁止
+
+5. 不自然な翻訳禁止（必要なら英単語をそのまま使う）
+
+6. 省略禁止（この AGENTS.md 単体で理解できるように）
+
+7. ドキュメントや設定に影響がある変更を行った場合は、**必ず関連する md ファイルも更新する**
+
+---
+
+# 9. AGENTS.md の更新ルール
+
+* 設計変更・依存追加・ディレクトリ構造変更があった場合、**必ず本ファイルも更新すること**
+* Codex が構造や仕様の変更を検出した場合、PR で更新提案を行うこと

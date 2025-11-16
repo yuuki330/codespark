@@ -1,3 +1,4 @@
 export * from './copySnippetUseCase'
+export * from './createSnippetUseCase'
 export * from './searchSnippetsUseCase'
 export * from './getTopSnippetsForEmptyQueryUseCase'

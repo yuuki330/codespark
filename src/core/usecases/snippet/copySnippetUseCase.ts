@@ -4,7 +4,10 @@ import type {
   SnippetDataAccessAdapter,
   SnippetId,
 } from '../../domain/snippet'
-import { SnippetNotFoundError } from '../../domain/snippet'
+import {
+  ClipboardCopyError,
+  SnippetNotFoundError,
+} from '../../domain/snippet'
 
 export type CopySnippetUseCaseInput = {
   snippetId: SnippetId
@@ -37,7 +40,12 @@ export class CopySnippetUseCase {
       throw new SnippetNotFoundError(input.snippetId)
     }
 
-    await this.clipboardGateway.copyText(snippet.body)
+    try {
+      await this.clipboardGateway.copyText(snippet.body)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'clipboard copy failed'
+      throw new ClipboardCopyError(message)
+    }
 
     const timestamp = this.now()
     const updatedSnippet: Snippet = {

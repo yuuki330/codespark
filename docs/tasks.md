@@ -21,7 +21,7 @@
 ## ユースケース
 - [ ] [P0] `SearchSnippetsUseCase` を実装し、クエリ・ライブラリ・タグ条件を受け、デザイン記載のスコアリングルールを網羅する。
 - [ ] [P1] `GetTopSnippetsForEmptyQueryUseCase` を作成し、空クエリ時にお気に入り＋最近利用スニペットを返す処理を切り出す。
-- [ ] [P0] `CopySnippetUseCase` を実装し、Snippet 取得→Tauri クリップボードコマンド呼び出し→`usageCount`/`lastUsedAt` 更新→保存までを直列化する。
+- [x] [P0] `CopySnippetUseCase` を実装し、Snippet 取得→Tauri クリップボードコマンド呼び出し→`usageCount`/`lastUsedAt` 更新→保存までを直列化する。
 - [x] [P0] `CreateSnippetUseCase` を実装し、入力 DTO→`constructSnippet`→保存→結果返却のフローを整備する。
 - [ ] [P0] `UpdateSnippetUseCase` で差分マージと `updatedAt` 更新、ReadOnly ライブラリチェックを行う（`applySnippetUpdate` を利用）。
 - [ ] [P0] `DeleteSnippetUseCase` で削除と UI 通知（例: 成功イベント）を提供する。
@@ -53,7 +53,7 @@
 ## テスト
 - [ ] [P0] Vitest + React Testing Library を導入し、`App.test.tsx` で基本 UI 挙動（検索・コピー・エラー表示）を確認する。
 - [ ] [P0] `SearchSnippetsUseCase` のスコアリングをユニットテストで網羅し、shortcut 完全一致やタグ一致など主要パターンを検証する。
-- [ ] [P1] `CopySnippetUseCase` の `usageCount`/`lastUsedAt` 更新ロジックとクリップボード失敗ハンドリングをテストする。
+- [x] [P1] `CopySnippetUseCase` の `usageCount`/`lastUsedAt` 更新ロジックとクリップボード失敗ハンドリングをテストする。
 - [ ] [P1] ReadOnly ライブラリへの書き込み禁止が `Create/Update/Delete` ユースケースで正しく動作するかテストする。
 - [ ] [P2] `GetTopSnippetsForEmptyQueryUseCase` がお気に入り＋最近使用の優先順を保証するテストを追加する。
 - [ ] [P1] `src-tauri/src/lib.rs` などに単体テストを書き、ファイルアクセスコマンドや JSON パーサの基本ケースを検証する。

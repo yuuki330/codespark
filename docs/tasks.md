@@ -5,7 +5,7 @@
 - [ ] [P0] `Snippet` 型を docs/design.md の定義どおり実装し、`shortcut` / `usageCount` / `lastUsedAt` など UI 要件をすべて含める。
 - [ ] [P1] `SnippetId` / `LibraryId` / `TagName` の型エイリアスを整理し、ユースケース側からインポートしやすくする。
 - [ ] [P0] `constructSnippet` 関数を用意し、`title` / `body` 非空、`tags` 重複禁止、`updatedAt >= createdAt` などドメインルールをバリデーションする。
-- [ ] [P0] `applySnippetUpdate` 関数を実装し、partial 更新値を受けて差分マージと再バリデーションを行う。
+- [x] [P0] `applySnippetUpdate` 関数を実装し、partial 更新値を受けて差分マージと再バリデーションを行う。
 - [ ] [P1] バリデーションエラーや ReadOnly ライブラリ違反を表すドメイン専用エラー型を定義する。
 - [ ] [P1] `SnippetLibrary` と `LibraryCategory` 型を実装し、`isReadOnly` や `category` を含む構造にする。
 - [ ] [P2] `UserPreferences`（拡張枠）の型を定義し、`defaultLibraryId` や `theme` など将来的に参照するフィールドを用意する。
@@ -23,7 +23,7 @@
 - [ ] [P1] `GetTopSnippetsForEmptyQueryUseCase` を作成し、空クエリ時にお気に入り＋最近利用スニペットを返す処理を切り出す。
 - [x] [P0] `CopySnippetUseCase` を実装し、Snippet 取得→Tauri クリップボードコマンド呼び出し→`usageCount`/`lastUsedAt` 更新→保存までを直列化する。
 - [x] [P0] `CreateSnippetUseCase` を実装し、入力 DTO→`constructSnippet`→保存→結果返却のフローを整備する。
-- [ ] [P0] `UpdateSnippetUseCase` で差分マージと `updatedAt` 更新、ReadOnly ライブラリチェックを行う（`applySnippetUpdate` を利用）。
+- [x] [P0] `UpdateSnippetUseCase` で差分マージと `updatedAt` 更新、ReadOnly ライブラリチェックを行う（`applySnippetUpdate` を利用）。
 - [ ] [P0] `DeleteSnippetUseCase` で削除と UI 通知（例: 成功イベント）を提供する。
 - [ ] [P1] `GetAllLibrariesUseCase` を作成して Personal/Team の表示用データ（name/category/isReadOnly）を返す。
 - [ ] [P1] `SwitchActiveLibraryUseCase` を実装し、選択状態を Preferences に保存し、検索条件への反映をハンドリングする。

@@ -32,4 +32,23 @@ describe('App', () => {
       ).toBeInTheDocument()
     )
   })
+
+  it('allows editing an existing snippet from the editor form', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const editTitle = await screen.findByLabelText('タイトル (編集) *')
+    await waitFor(() => expect(editTitle).toHaveValue('ログ出力（Python）'))
+    await user.clear(editTitle)
+    await user.type(editTitle, 'ログ出力（更新版）')
+
+    const editBody = screen.getByLabelText('本文 (編集) *')
+    await user.clear(editBody)
+    await user.type(editBody, 'print("updated")')
+
+    await user.click(screen.getByRole('button', { name: 'スニペットを更新' }))
+
+    await waitFor(() => expect(editTitle).toHaveValue('ログ出力（更新版）'))
+
+  })
 })

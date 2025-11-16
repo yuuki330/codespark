@@ -1,3 +1,5 @@
+import type { LibraryId } from '../domain-values'
+
 /**
  * バリデーションエラーや ReadOnly 例外など、
  * Snippet ドメイン専用のエラー型をここにまとめる。
@@ -43,5 +45,12 @@ export class ClipboardCopyError extends Error {
   constructor(message: string) {
     super(message)
     this.name = 'ClipboardCopyError'
+  }
+}
+
+export class ReadOnlyLibraryViolationError extends Error {
+  constructor(libraryId: LibraryId) {
+    super(`library ${libraryId} is read-only`)
+    this.name = 'ReadOnlyLibraryViolationError'
   }
 }

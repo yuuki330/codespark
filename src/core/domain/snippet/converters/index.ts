@@ -117,3 +117,42 @@ const findDuplicateTags = (tags: TagName[]): TagName[] => {
 
   return Array.from(duplicates)
 }
+
+export type SnippetUpdatePatch = {
+  title?: string
+  body?: string
+  tags?: TagName[]
+  shortcut?: string | null
+  description?: string | null
+  language?: string | null
+  isFavorite?: boolean
+  libraryId?: LibraryId
+}
+
+export type ApplySnippetUpdateInput = {
+  snippet: Snippet
+  patch: SnippetUpdatePatch
+  updatedAt: Date
+}
+
+export const applySnippetUpdate = ({
+  snippet,
+  patch,
+  updatedAt,
+}: ApplySnippetUpdateInput): Snippet => {
+  return constructSnippet({
+    id: snippet.id,
+    title: patch.title ?? snippet.title,
+    body: patch.body ?? snippet.body,
+    shortcut: patch.shortcut ?? snippet.shortcut,
+    description: patch.description ?? snippet.description,
+    tags: patch.tags ?? snippet.tags,
+    language: patch.language ?? snippet.language,
+    isFavorite: patch.isFavorite ?? snippet.isFavorite,
+    usageCount: snippet.usageCount,
+    lastUsedAt: snippet.lastUsedAt,
+    libraryId: patch.libraryId ?? snippet.libraryId,
+    createdAt: snippet.createdAt,
+    updatedAt,
+  })
+}

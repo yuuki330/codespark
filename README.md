@@ -210,6 +210,8 @@ type UserPreferences = {
 5. `updatedAt` を更新。
 6. `SnippetDataAccessAdapter.save(updatedSnippet)` を実行。
 
+実装は `src/core/usecases/snippet/updateSnippetUseCase.ts` で行い、ReadOnly ライブラリの場合は `ReadOnlyLibraryViolationError` を返す。UI では `App.tsx` 内の「選択中のスニペットを編集」フォームから `UpdateSnippetUseCase` を呼び出し、ライブラリやタグ変更を含む編集を行う。
+
 ---
 
 ### UC-04: スニペットを削除する

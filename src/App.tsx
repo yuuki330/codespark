@@ -3,11 +3,13 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { LibraryId, Snippet, SnippetLibrary, TagName } from './core/domain/snippet'
 import { InMemorySnippetDataAccessAdapter } from './core/data-access/snippet'
 import { TauriClipboardGateway } from './core/platform'
+import type { SnippetId } from './core/domain/snippet'
 import {
   CopySnippetUseCase,
   CreateSnippetUseCase,
   GetTopSnippetsForEmptyQueryUseCase,
   SearchSnippetsUseCase,
+  UpdateSnippetUseCase,
 } from './core/usecases'
 import type { Notification } from './components'
 import {
@@ -19,6 +21,7 @@ import {
   SnippetList,
   SnippetForm,
   type SnippetFormValues,
+  SnippetEditor,
 } from './components'
 
 import './App.css'
@@ -157,6 +160,14 @@ const App: React.FC = () => {
           }),
       }),
     [getTopSnippetsUseCase]
+  )
+  const updateSnippetUseCase = useMemo(
+    () =>
+      new UpdateSnippetUseCase({
+        snippetGateway: snippetGatewayRef.current,
+        libraryGateway: snippetGatewayRef.current,
+      }),
+    []
   )
 
   const pushNotification = useCallback((type: Notification['type'], message: string) => {
@@ -355,6 +366,33 @@ const App: React.FC = () => {
     [createSnippetUseCase, pushNotification, refreshSnippets]
   )
 
+  const handleUpdateSnippet = useCallback(
+    async ({ snippetId, values }: { snippetId: SnippetId; values: SnippetFormValues }) => {
+      try {
+        await updateSnippetUseCase.execute({
+          snippetId,
+          updates: {
+            title: values.title,
+            body: values.body,
+            tags: values.tags,
+            language: values.language ?? null,
+            shortcut: values.shortcut ?? null,
+            description: values.description ?? null,
+            libraryId: values.libraryId,
+            isFavorite: values.isFavorite,
+          },
+        })
+        await refreshSnippets()
+        pushNotification('success', `スニペットを更新しました: ${values.title}`)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'スニペットの更新に失敗しました'
+        pushNotification('error', `スニペットを更新できませんでした: ${message}`)
+        throw error
+      }
+    },
+    [updateSnippetUseCase, refreshSnippets, pushNotification]
+  )
+
   return (
     <>
       <div className='app-shell'>
@@ -431,6 +469,10 @@ const App: React.FC = () => {
               defaultLibraryId={defaultWritableLibraryId}
               onSubmit={handleCreateSnippet}
             />
+          </div>
+
+          <div className='editor-panel'>
+            <SnippetEditor snippet={selectedSnippet} libraries={libraries} onSubmit={handleUpdateSnippet} />
           </div>
         </div>
       </div>

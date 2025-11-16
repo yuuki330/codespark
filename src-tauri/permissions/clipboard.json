@@ -1,0 +1,15 @@
+{
+  "default": null,
+  "permission": [
+    {
+      "identifier": "clipboard",
+      "description": "Allow clipboard copy command",
+      "commands": {
+        "allow": [
+          "copy_snippet_to_clipboard"
+        ],
+        "deny": []
+      }
+    }
+  ]
+}

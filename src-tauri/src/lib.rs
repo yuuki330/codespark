@@ -1,5 +1,9 @@
+use std::fs;
 use std::io::Write;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+
+use tauri::{path::BaseDirectory, AppHandle, Manager};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -10,6 +14,54 @@ fn greet(name: &str) -> String {
 #[tauri::command]
 fn copy_snippet_to_clipboard(text: String) -> Result<(), String> {
     set_clipboard(&text)
+}
+
+#[tauri::command]
+fn read_snippet_store(
+    app: AppHandle,
+    path: String,
+    scope: Option<String>,
+) -> Result<String, String> {
+    let resolved = resolve_store_path(&app, Path::new(&path), scope)?;
+    fs::read_to_string(&resolved)
+        .map_err(|error| format!("failed to read {}: {error}", resolved.display()))
+}
+
+#[tauri::command]
+fn write_snippet_store(
+    app: AppHandle,
+    path: String,
+    scope: Option<String>,
+    contents: String,
+) -> Result<(), String> {
+    let resolved = resolve_store_path(&app, Path::new(&path), scope)?;
+    if let Some(parent) = resolved.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
+    }
+    fs::write(&resolved, contents)
+        .map_err(|error| format!("failed to write {}: {error}", resolved.display()))
+}
+
+#[tauri::command]
+fn snippet_store_exists(
+    app: AppHandle,
+    path: String,
+    scope: Option<String>,
+) -> Result<bool, String> {
+    let resolved = resolve_store_path(&app, Path::new(&path), scope)?;
+    Ok(resolved.exists())
+}
+
+#[tauri::command]
+fn ensure_snippet_store_dir(
+    app: AppHandle,
+    path: String,
+    scope: Option<String>,
+) -> Result<(), String> {
+    let resolved = resolve_store_path(&app, Path::new(&path), scope)?;
+    fs::create_dir_all(&resolved)
+        .map_err(|error| format!("failed to create {}: {error}", resolved.display()))
 }
 
 #[cfg(target_os = "macos")]
@@ -67,11 +119,49 @@ fn run_command_with_input(command: &str, args: &[&str], text: &str) -> Result<()
     }
 }
 
+fn resolve_store_path(
+    app: &AppHandle,
+    path: &Path,
+    scope: Option<String>,
+) -> Result<PathBuf, String> {
+    let base_directory = scope_to_base_directory(scope);
+    app.path()
+        .resolve(path, base_directory)
+        .map_err(|error| format!("failed to resolve path: {error}"))
+}
+
+fn scope_to_base_directory(scope: Option<String>) -> BaseDirectory {
+    match scope.as_deref() {
+        Some("appConfig") => BaseDirectory::AppConfig,
+        Some("appData") => BaseDirectory::AppData,
+        Some("appLocalData") => BaseDirectory::AppLocalData,
+        Some("appCache") => BaseDirectory::AppCache,
+        Some("appLog") => BaseDirectory::AppLog,
+        Some("config") => BaseDirectory::Config,
+        Some("data") => BaseDirectory::Data,
+        Some("document") => BaseDirectory::Document,
+        Some("download") => BaseDirectory::Download,
+        Some("desktop") => BaseDirectory::Desktop,
+        Some("home") => BaseDirectory::Home,
+        Some("public") => BaseDirectory::Public,
+        Some("resource") => BaseDirectory::Resource,
+        Some("temp") => BaseDirectory::Temp,
+        _ => BaseDirectory::AppData,
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet, copy_snippet_to_clipboard])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            copy_snippet_to_clipboard,
+            read_snippet_store,
+            write_snippet_store,
+            snippet_store_exists,
+            ensure_snippet_store_dir
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

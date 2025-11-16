@@ -417,3 +417,11 @@ Mermaid で各レイヤの依存関係をまとめた図を [docs/architecture-d
 - 空クエリ時は `GetTopSnippetsForEmptyQueryUseCase` の結果（お気に入り + 最近使用）を優先的に表示し、「候補が無い」状態を明示するメッセージを出す。
 - ライブラリ切替は `⌘1`（All）/`⌘2`（Personal）/`⌘3`（Team）…… のショートカットに対応し、ショートカット操作でも UI のトグルが同期する。Windows/Linux では `Ctrl` キーで同じ操作が可能。
 - コピー失敗などの異常はアラートではなく通知トーストに集約し、複数イベントが続いてもスタックとして確認できる。通知は数秒で自動的に消える。
+
+
+## 12. デスクトップビルド手順
+
+1. 依存関係をセットアップ: `npm install` を実行して Node/Tauri CLI を同期する。
+2. 開発時は `npm run tauri dev` で Vite と Tauri を同時起動し、OS API の動作を都度確認する。
+3. 本番ビルドは `npm run tauri build` を利用し、macOS は Xcode Command Line Tools、Windows は WebView2 Runtime（Evergreen）と Visual C++ 再頒布パッケージを満たしていることを確認する。
+4. macOS/Windows 共に生成バイナリで検索・コピー・ファイル永続化が動作するか実機確認し、WebView2 未導入環境では Microsoft 配布のインストーラで事前に更新してもらう旨を README/PR に記す。

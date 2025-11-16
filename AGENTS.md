@@ -15,7 +15,7 @@ CodeSpark は Vite + React のフロントエンドと Rust 製の Tauri シェ�
 TypeScript は 2 スペースインデント、セミコロン省略、単一引用符を推奨します。React コンポーネントは PascalCase (`SnippetList`) 、フックは `use` から始め、小さな UI 断片は `src/components/` に分離してください。共有色や余白は CSS 変数またはモジュール CSS へ逃がし、インラインスタイルは一時的な実験に留めます。Rust 側は `snake_case` ファイル／関数名を守り、JS から呼び出すフロント API では camelCase に変換します。
 
 ## テスト指針
-現状テストは未導入のため、UI には Vitest + React Testing Library を同居ファイル形式（`App.test.tsx`）で追加してください。Tauri コマンドは `src-tauri/src/lib.rs` に単体テストを書き、`cargo test` で検証します。検索フィルタリング、クリップボード失敗ハンドリング、権限チェックなど主要シナリオをカバーし、再現手順を README へ記しておくとレビューが容易です。
+現状テストは未導入のため、UI には Vitest + React Testing Library を同居ファイル形式（`App.test.tsx`）で追加してください。Tauri コマンドは `src-tauri/src/lib.rs` に単体テストを書き、`cargo test` で検証します。検索フィルタリング、クリップボード失敗ハンドリング、権限チェックなど主要シナリオをカバーし、再現手順を README へ記しておくとレビューが容易です。機能開発時は、その機能の期待動作を確認するテストを必ず同時に作成または更新し、実装とテストの整合性を維持してください。
 
 ## コミットとプルリクエスト
 コミットメッセージは Conventional Commits (`feat: add clipboard guard` など) を参考にし、意図と影響範囲を一読で把握できるようにします。PR 説明には変更概要、影響するコマンド、関連 Issue、UI 変更時のスクリーンショット／動画、Tauri 設定差分を添付してください。ローカルで `npm run build` と必要な `cargo test` を通し、必要なら手動検証結果をチェックリスト化します。

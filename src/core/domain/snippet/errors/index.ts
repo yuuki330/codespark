@@ -38,3 +38,10 @@ export class SnippetNotFoundError extends Error {
     this.name = 'SnippetNotFoundError'
   }
 }
+
+export class ClipboardCopyError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ClipboardCopyError'
+  }
+}

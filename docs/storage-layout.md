@@ -9,9 +9,11 @@ CodeSpark のスニペットは `FileSnippetDataAccessAdapter` を経由して�
 
 | OS | ベースディレクトリ (AppData) | 実際のファイルパス例 |
 | --- | --- | --- |
-| macOS | `~/Library/Application Support/com.yuuki330.codespark/` | `~/Library/Application Support/com.yuuki330.codespark/codespark/snippets.json` |
-| Windows | `%APPDATA%\com.yuuki330.codespark\` | `%APPDATA%\com.yuuki330.codespark\codespark\snippets.json` |
-| Linux | `~/.local/share/com.yuuki330.codespark/` | `~/.local/share/com.yuuki330.codespark/codespark/snippets.json` |
+| macOS | `~/Library/Application Support/<tauri.identifier>/` | `~/Library/Application Support/<tauri.identifier>/codespark/snippets.json` |
+| Windows | `%APPDATA%\<tauri.identifier>\` | `%APPDATA%\<tauri.identifier>\codespark\snippets.json` |
+| Linux | `~/.local/share/<tauri.identifier>/` | `~/.local/share/<tauri.identifier>/codespark/snippets.json` |
+
+`<tauri.identifier>` には `tauri.conf.json` の `identifier` フィールド（現状は `com.yuuki330.codespark`）が入る。アプリの識別子を変更した場合でも、ここを揃えておけば保存先のベースパスが自動で切り替わる。
 
 > `snippets.json` が存在しない場合や壊れている場合は、起動時に空ファイルを再作成する。
 

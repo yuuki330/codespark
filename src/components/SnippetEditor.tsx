@@ -7,6 +7,7 @@ type SnippetEditorProps = {
   snippet: Snippet | null
   libraries: SnippetLibrary[]
   onSubmit: (params: { snippetId: SnippetId; values: SnippetFormValues }) => Promise<void>
+  onDelete: (snippetId: SnippetId) => Promise<void>
 }
 
 const normalizeTags = (raw: string): string[] => {
@@ -16,7 +17,7 @@ const normalizeTags = (raw: string): string[] => {
     .filter(tag => tag.length > 0)
 }
 
-export function SnippetEditor({ snippet, libraries, onSubmit }: SnippetEditorProps) {
+export function SnippetEditor({ snippet, libraries, onSubmit, onDelete }: SnippetEditorProps) {
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [tagsInput, setTagsInput] = useState('')
@@ -26,6 +27,7 @@ export function SnippetEditor({ snippet, libraries, onSubmit }: SnippetEditorPro
   const [libraryId, setLibraryId] = useState('')
   const [isFavorite, setIsFavorite] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -39,6 +41,7 @@ export function SnippetEditor({ snippet, libraries, onSubmit }: SnippetEditorPro
       setLibraryId('')
       setIsFavorite(false)
       setError(null)
+      setDeleting(false)
       return
     }
 
@@ -59,7 +62,7 @@ export function SnippetEditor({ snippet, libraries, onSubmit }: SnippetEditorPro
   }, [libraries, snippet])
 
   const isReadOnly = currentLibrary?.isReadOnly ?? false
-  const formDisabled = !snippet || isReadOnly || submitting
+  const formDisabled = !snippet || isReadOnly || submitting || deleting
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -97,6 +100,23 @@ export function SnippetEditor({ snippet, libraries, onSubmit }: SnippetEditorPro
     }
   }
 
+  const handleDelete = async () => {
+    if (!snippet || isReadOnly) return
+    setDeleting(true)
+    setError(null)
+    try {
+      await onDelete(snippet.id)
+    } catch (submissionError) {
+      const message =
+        submissionError instanceof Error
+          ? submissionError.message
+          : 'スニペットの削除に失敗しました'
+      setError(message)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <div className='snippet-editor'>
       <div className='snippet-form__header'>
@@ -106,9 +126,19 @@ export function SnippetEditor({ snippet, libraries, onSubmit }: SnippetEditorPro
             ライブラリや本文を更新し、{currentLibrary?.name ?? 'ライブラリ'} に保存します。
           </p>
         </div>
-        <button className='snippet-form__submit' type='submit' form='snippet-editor-form' disabled={formDisabled}>
-          {isReadOnly ? '編集できません' : submitting ? '更新中…' : 'スニペットを更新'}
-        </button>
+        <div className='snippet-editor__actions'>
+          <button className='snippet-form__submit' type='submit' form='snippet-editor-form' disabled={formDisabled}>
+            {isReadOnly ? '編集できません' : submitting ? '更新中…' : 'スニペットを更新'}
+          </button>
+          <button
+            type='button'
+            className='snippet-form__danger'
+            disabled={!snippet || isReadOnly || deleting}
+            onClick={handleDelete}
+          >
+            {deleting ? '削除中…' : 'スニペットを削除'}
+          </button>
+        </div>
       </div>
 
       {!snippet ? (

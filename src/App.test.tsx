@@ -49,6 +49,22 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'スニペットを更新' }))
 
     await waitFor(() => expect(editTitle).toHaveValue('ログ出力（更新版）'))
+  })
 
+  it('allows deleting the selected snippet from the editor', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const deleteButton = await screen.findByRole('button', { name: 'スニペットを削除' })
+    await user.click(deleteButton)
+
+    await screen.findByText('スニペットを削除しました: ログ出力（Python）')
+
+    const searchInput = screen.getByPlaceholderText('Search snippets…')
+    await user.type(searchInput, 'ログ出力')
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /ログ出力（Python）/ })).not.toBeInTheDocument()
+    })
   })
 })

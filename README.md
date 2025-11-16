@@ -229,6 +229,8 @@ type UserPreferences = {
 2. `SnippetDataAccessAdapter.delete(id)` を呼ぶ。
 3. 関連するキャッシュ等があれば更新する（将来）。
 
+実装は `src/core/usecases/snippet/deleteSnippetUseCase.ts` で行い、ReadOnly ライブラリの削除は `ReadOnlyLibraryViolationError` で防いでいる。UI では `App.tsx` 内のスニペット編集パネルに「スニペットを削除」ボタンを配置し、選択中のスニペットを削除するとトースト通知が表示されリストが更新される。
+
 ---
 
 ### UC-05: タグ・条件でスニペットを絞り込む

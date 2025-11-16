@@ -7,6 +7,7 @@ import type { SnippetId } from './core/domain/snippet'
 import {
   CopySnippetUseCase,
   CreateSnippetUseCase,
+  DeleteSnippetUseCase,
   GetTopSnippetsForEmptyQueryUseCase,
   SearchSnippetsUseCase,
   UpdateSnippetUseCase,
@@ -164,6 +165,14 @@ const App: React.FC = () => {
   const updateSnippetUseCase = useMemo(
     () =>
       new UpdateSnippetUseCase({
+        snippetGateway: snippetGatewayRef.current,
+        libraryGateway: snippetGatewayRef.current,
+      }),
+    []
+  )
+  const deleteSnippetUseCase = useMemo(
+    () =>
+      new DeleteSnippetUseCase({
         snippetGateway: snippetGatewayRef.current,
         libraryGateway: snippetGatewayRef.current,
       }),
@@ -393,6 +402,22 @@ const App: React.FC = () => {
     [updateSnippetUseCase, refreshSnippets, pushNotification]
   )
 
+  const handleDeleteSnippet = useCallback(
+    async (snippetId: SnippetId) => {
+      try {
+        const result = await deleteSnippetUseCase.execute({ snippetId })
+        await refreshSnippets()
+        setSelectedIndex(0)
+        pushNotification('success', `スニペットを削除しました: ${result.deletedSnippet.title}`)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'スニペットの削除に失敗しました'
+        pushNotification('error', `スニペットを削除できませんでした: ${message}`)
+        throw error
+      }
+    },
+    [deleteSnippetUseCase, refreshSnippets, pushNotification]
+  )
+
   return (
     <>
       <div className='app-shell'>
@@ -472,7 +497,12 @@ const App: React.FC = () => {
           </div>
 
           <div className='editor-panel'>
-            <SnippetEditor snippet={selectedSnippet} libraries={libraries} onSubmit={handleUpdateSnippet} />
+            <SnippetEditor
+              snippet={selectedSnippet}
+              libraries={libraries}
+              onSubmit={handleUpdateSnippet}
+              onDelete={handleDeleteSnippet}
+            />
           </div>
         </div>
       </div>

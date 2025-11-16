@@ -272,6 +272,23 @@ body {
   cursor: not-allowed;
 }
 
+.snippet-form__danger {
+  border: none;
+  border-radius: 999px;
+  background: rgba(220, 38, 38, 0.15);
+  color: #fecaca;
+  font-size: 12px;
+  padding: 8px 16px;
+  cursor: pointer;
+  border: 1px solid rgba(220, 38, 38, 0.5);
+  transition: opacity 140ms ease;
+}
+
+.snippet-form__danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .snippet-form__grid {
   display: grid;
   gap: 12px;
@@ -330,6 +347,13 @@ body {
 
 .snippet-editor__readonly {
   color: #fecaca;
+}
+
+.snippet-editor__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .toast-stack {

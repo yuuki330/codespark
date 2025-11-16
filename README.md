@@ -188,6 +188,8 @@ type UserPreferences = {
 3. `SnippetDataAccessAdapter.save(snippet)` を呼び出し、永続化。
 4. 成功したスニペットを返す。
 
+実装は `src/core/usecases/snippet/createSnippetUseCase.ts` で行い、DTO から `constructSnippet` を呼び出してドメインルール検証と保存を直列化している。
+
 ---
 
 ### UC-03: スニペットを編集する

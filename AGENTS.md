@@ -119,6 +119,33 @@ Codex は **これ以外のコマンドを提案・実行しない**。
 
 # 6. コミット・Pull Request のルール
 
+### 🔧 Git 運用ルール（重要）
+
+Codex は Git 操作をする際、以下のルールに必ず従うこと：
+
+* **`git pull` を実行する場合は、必ず事前に `main` ブランチへ移動すること。**
+
+  ```bash
+  git switch main
+  git pull
+  ```
+
+  他のブランチで `git pull` を行うと、不要なマージコミットや競合が発生するため禁止。
+
+* 機能追加や修正作業は **新しいブランチを main から切って** 行うこと。
+
+  ```bash
+  git switch main
+  git pull
+  git switch -c feature/<name>
+  ```
+
+* ローカルの変更が未コミットの状態で `git pull` を実行しない。
+  必要であれば `git stash` を利用する。
+
+* `git push --force` は禁止。
+  ただしユーザーから明示的に指示があった場合のみ例外的に使用する。
+
 ### コミット
 
 * Conventional Commits 推奨：

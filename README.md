@@ -308,6 +308,8 @@ export interface SnippetDataAccessAdapter {
 * （将来）Git 連携用：`GitSnippetDataAccessAdapter`
 * （将来）社内 API 用：`RemoteSnippetDataAccessAdapter`
 
+ローカル JSON の保存先パスや `snippets.json` のスキーマは [docs/storage-layout.md](./docs/storage-layout.md) にまとめてある。
+
 などを **インターフェースアダプタ層（データアクセスアダプタ）** に実装する。
 
 ---

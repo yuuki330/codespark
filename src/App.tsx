@@ -5,6 +5,7 @@ import { InMemorySnippetDataAccessAdapter } from './core/data-access/snippet'
 import { TauriClipboardGateway } from './core/platform'
 import {
   CopySnippetUseCase,
+  CreateSnippetUseCase,
   GetTopSnippetsForEmptyQueryUseCase,
   SearchSnippetsUseCase,
 } from './core/usecases'
@@ -16,6 +17,8 @@ import {
   SearchInput,
   type SearchInputHandle,
   SnippetList,
+  SnippetForm,
+  type SnippetFormValues,
 } from './components'
 
 import './App.css'
@@ -100,6 +103,14 @@ const initialSnippets: Snippet[] = [
 const highlightTimeoutMs = 180
 const notificationDurationMs = 4000
 
+const generateSnippetId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  const randomSuffix = Math.random().toString(16).slice(2)
+  return `snippet-${Date.now().toString(16)}-${randomSuffix}`
+}
+
 const App: React.FC = () => {
   const [query, setQuery] = useState('')
   const [snippets, setSnippets] = useState<Snippet[]>([])
@@ -124,6 +135,14 @@ const App: React.FC = () => {
   )
   const getTopSnippetsUseCase = useMemo(
     () => new GetTopSnippetsForEmptyQueryUseCase({ snippetGateway: snippetGatewayRef.current }),
+    []
+  )
+  const createSnippetUseCase = useMemo(
+    () =>
+      new CreateSnippetUseCase({
+        snippetGateway: snippetGatewayRef.current,
+        generateId: generateSnippetId,
+      }),
     []
   )
   const searchSnippetsUseCase = useMemo(
@@ -307,6 +326,34 @@ const App: React.FC = () => {
   }, [filteredCount, filteredSnippets, handleCopySnippet, libraries, selectedIndex])
 
   const selectedSnippet = filteredSnippets[selectedIndex] ?? null
+  const defaultWritableLibraryId = useMemo(() => {
+    const writable = libraries.find(library => !library.isReadOnly)
+    return writable?.id ?? libraries[0]?.id
+  }, [libraries])
+
+  const handleCreateSnippet = useCallback(
+    async (values: SnippetFormValues) => {
+      try {
+        await createSnippetUseCase.execute({
+          title: values.title,
+          body: values.body,
+          tags: values.tags,
+          language: values.language ?? null,
+          shortcut: values.shortcut ?? null,
+          description: values.description ?? null,
+          libraryId: values.libraryId,
+          isFavorite: values.isFavorite,
+        })
+        await refreshSnippets()
+        pushNotification('success', `スニペットを追加しました: ${values.title}`)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'スニペットの追加に失敗しました'
+        pushNotification('error', `スニペットを追加できませんでした: ${message}`)
+        throw error
+      }
+    },
+    [createSnippetUseCase, pushNotification, refreshSnippets]
+  )
 
   return (
     <>
@@ -375,6 +422,14 @@ const App: React.FC = () => {
               emptyMessage={
                 isEmptyQuery ? 'お気に入りや最近使用のスニペットがまだありません' : '一致するスニペットがありません'
               }
+            />
+          </div>
+
+          <div className='creation-panel'>
+            <SnippetForm
+              libraries={libraries}
+              defaultLibraryId={defaultWritableLibraryId}
+              onSubmit={handleCreateSnippet}
             />
           </div>
         </div>

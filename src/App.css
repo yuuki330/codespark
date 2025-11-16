@@ -222,6 +222,100 @@ body {
   padding: 12px 4px;
 }
 
+.creation-panel {
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+  padding-top: 14px;
+}
+
+.snippet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.snippet-form__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.snippet-form__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.snippet-form__caption {
+  margin: 0;
+  font-size: 11px;
+  color: var(--primary-muted);
+}
+
+.snippet-form__submit {
+  border: none;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.9);
+  color: #f8fafc;
+  font-size: 12px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: opacity 140ms ease;
+}
+
+.snippet-form__submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.snippet-form__grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.snippet-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--primary-muted);
+}
+
+.snippet-form__field > input,
+.snippet-form__field > select,
+.snippet-form__field > textarea {
+  border-radius: 10px;
+  border: 1px solid rgba(55, 65, 81, 0.7);
+  background: rgba(2, 6, 23, 0.85);
+  color: #e2e8f0;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.snippet-form__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--primary-muted);
+}
+
+.snippet-form__checkbox input {
+  width: 16px;
+  height: 16px;
+}
+
+.snippet-form__error {
+  font-size: 12px;
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(248, 113, 113, 0.5);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
 .toast-stack {
   position: fixed;
   bottom: 32px;

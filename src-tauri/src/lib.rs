@@ -3,7 +3,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-use tauri::{path::BaseDirectory, AppHandle, Manager};
+use tauri::{path::BaseDirectory, AppHandle, Manager, Runtime};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -119,8 +119,8 @@ fn run_command_with_input(command: &str, args: &[&str], text: &str) -> Result<()
     }
 }
 
-fn resolve_store_path(
-    app: &AppHandle,
+fn resolve_store_path<R: Runtime>(
+    app: &AppHandle<R>,
     path: &Path,
     scope: Option<String>,
 ) -> Result<PathBuf, String> {
@@ -147,6 +147,29 @@ fn scope_to_base_directory(scope: Option<String>) -> BaseDirectory {
         Some("resource") => BaseDirectory::Resource,
         Some("temp") => BaseDirectory::Temp,
         _ => BaseDirectory::AppData,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tauri::test::mock_app;
+
+    #[test]
+    fn scope_defaults_to_app_data() {
+        let dir = scope_to_base_directory(None);
+        assert!(matches!(dir, BaseDirectory::AppData));
+    }
+
+    #[test]
+    fn resolve_store_path_respects_scope_and_relative_path() {
+        let app = mock_app();
+        let handle = app.app_handle();
+        let path = resolve_store_path(&handle, Path::new("codespark/snippets.json"), Some("appLocalData".to_string()))
+            .expect("path should resolve");
+
+        assert!(path.ends_with(Path::new("codespark/snippets.json")));
+        assert!(path.to_string_lossy().contains("codespark"));
     }
 }
 

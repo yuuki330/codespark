@@ -7,9 +7,10 @@ import type {
   SnippetLibrary,
   SnippetLibraryDataAccessAdapter,
   TagName,
+  UserPreferencesGateway,
 } from './core/domain/snippet'
 import { FileSnippetDataAccessAdapter, InMemorySnippetDataAccessAdapter } from './core/data-access/snippet'
-import { TauriClipboardGateway } from './core/platform'
+import { LocalStorageUserPreferencesGateway, TauriClipboardGateway } from './core/platform'
 import type { SnippetId } from './core/domain/snippet'
 import {
   CopySnippetUseCase,
@@ -17,6 +18,9 @@ import {
   DeleteSnippetUseCase,
   GetTopSnippetsForEmptyQueryUseCase,
   SearchSnippetsUseCase,
+  GetLibrariesUseCase,
+  GetActiveLibraryUseCase,
+  SwitchActiveLibraryUseCase,
   UpdateSnippetUseCase,
 } from './core/usecases'
 import type { Notification } from './components'
@@ -144,6 +148,7 @@ const App: React.FC = () => {
       ? new InMemorySnippetDataAccessAdapter(initialSnippets)
       : new FileSnippetDataAccessAdapter()
   )
+  const preferencesGatewayRef = useRef<UserPreferencesGateway>(new LocalStorageUserPreferencesGateway())
   const clipboardGatewayRef = useRef(new TauriClipboardGateway())
   const copySnippetUseCase = useMemo(
     () =>
@@ -191,6 +196,22 @@ const App: React.FC = () => {
       new DeleteSnippetUseCase({
         snippetGateway: snippetGatewayRef.current,
         libraryGateway: snippetGatewayRef.current,
+      }),
+    []
+  )
+  const getLibrariesUseCase = useMemo(
+    () => new GetLibrariesUseCase({ libraryGateway: snippetGatewayRef.current }),
+    []
+  )
+  const getActiveLibraryUseCase = useMemo(
+    () => new GetActiveLibraryUseCase({ preferencesGateway: preferencesGatewayRef.current }),
+    []
+  )
+  const switchActiveLibraryUseCase = useMemo(
+    () =>
+      new SwitchActiveLibraryUseCase({
+        libraryGateway: snippetGatewayRef.current,
+        preferencesGateway: preferencesGatewayRef.current,
       }),
     []
   )
@@ -243,8 +264,35 @@ const App: React.FC = () => {
   }, [storageMode])
 
   useEffect(() => {
-    snippetGatewayRef.current.getLibraries().then(setLibraries)
-  }, [])
+    let cancelled = false
+
+    const loadLibraries = async () => {
+      try {
+        const records = await getLibrariesUseCase.execute()
+        if (cancelled) return
+        setLibraries(records)
+        const fallbackLibraryId = records.find(library => !library.isReadOnly)?.id ?? null
+        const activeLibraryId = await getActiveLibraryUseCase.execute({
+          availableLibraries: records,
+          fallbackLibraryId,
+        })
+        if (cancelled) return
+        setSelectedLibraryIds(activeLibraryId ? [activeLibraryId] : [])
+      } catch (error) {
+        console.error('failed to load libraries', error)
+        if (!cancelled) {
+          setLibraries([])
+          setSelectedLibraryIds([])
+        }
+      }
+    }
+
+    loadLibraries()
+
+    return () => {
+      cancelled = true
+    }
+  }, [getActiveLibraryUseCase, getLibrariesUseCase])
 
   useEffect(() => {
     searchInputRef.current?.focus()
@@ -287,18 +335,37 @@ const App: React.FC = () => {
   const isAllLibrariesSelected = selectedLibraryIds.length === 0
   const isEmptyQuery = query.trim().length === 0
 
-  const toggleLibrarySelection = (libraryId: LibraryId) => {
-    setSelectedLibraryIds(current => {
-      if (current.includes(libraryId)) {
-        return current.filter(id => id !== libraryId)
-      }
-      return [...current, libraryId]
-    })
-  }
+  const selectedLibraryIdsRef = useRef<LibraryId[]>([])
+  useEffect(() => {
+    selectedLibraryIdsRef.current = selectedLibraryIds
+  }, [selectedLibraryIds])
 
-  const handleSelectAllLibraries = () => {
-    setSelectedLibraryIds([])
-  }
+  const applyLibrarySelection = useCallback(
+    async (nextIds: LibraryId[]) => {
+      try {
+        await switchActiveLibraryUseCase.execute({ libraryId: nextIds[0] ?? null })
+        setSelectedLibraryIds(nextIds)
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'ライブラリ選択の保存に失敗しました'
+        pushNotification('error', message)
+      }
+    },
+    [pushNotification, switchActiveLibraryUseCase]
+  )
+
+  const toggleLibrarySelection = useCallback(
+    (libraryId: LibraryId) => {
+      const current = selectedLibraryIdsRef.current
+      const next = current.length === 1 && current[0] === libraryId ? [] : [libraryId]
+      void applyLibrarySelection(next)
+    },
+    [applyLibrarySelection]
+  )
+
+  const handleSelectAllLibraries = useCallback(() => {
+    void applyLibrarySelection([])
+  }, [applyLibrarySelection])
 
   const toggleTagSelection = (tag: TagName) => {
     setSelectedTags(current => {

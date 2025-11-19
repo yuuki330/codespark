@@ -26,8 +26,8 @@
 - [x] [P0] `CreateSnippetUseCase` を実装し、入力 DTO→`constructSnippet`→保存→結果返却のフローを整備する。
 - [x] [P0] `UpdateSnippetUseCase` で差分マージと `updatedAt` 更新、ReadOnly ライブラリチェックを行う（`applySnippetUpdate` を利用）。
 - [x] [P0] `DeleteSnippetUseCase` で削除と UI 通知（例: 成功イベント）を提供する。
-- [ ] [P1] `GetAllLibrariesUseCase` を作成して Personal/Team の表示用データ（name/category/isReadOnly）を返す。
-- [ ] [P1] `SwitchActiveLibraryUseCase` を実装し、選択状態を Preferences に保存し、検索条件への反映をハンドリングする。
+- [x] [P1] `GetAllLibrariesUseCase` を作成して Personal/Team の表示用データ（name/category/isReadOnly）を返す。
+- [x] [P1] `SwitchActiveLibraryUseCase` を実装し、選択状態を Preferences に保存し、検索条件への反映をハンドリングする。
 
 ## UI / プレゼンテーション
 - [x] [P1] `src/components/` を新設し、検索バー・スニペットリスト・ライブラリ切替・トーストコンポーネントを分離する。

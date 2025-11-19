@@ -36,7 +36,7 @@ export type ThemePreference = 'light' | 'dark' | 'system'
  * 将来的な UI 設定を想定したプレースホルダ。
  */
 export type UserPreferences = {
-  defaultLibraryId: LibraryId
+  defaultLibraryId: LibraryId | null
   theme: ThemePreference
   globalShortcut?: string | null
 }

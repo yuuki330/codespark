@@ -1,4 +1,4 @@
-import type { Snippet, SnippetLibrary } from '../entities'
+import type { Snippet, SnippetLibrary, UserPreferences } from '../entities'
 import type { SnippetId } from '../domain-values'
 
 /**
@@ -25,4 +25,9 @@ export interface SnippetLibraryDataAccessAdapter {
  */
 export interface ClipboardGateway {
   copyText(text: string): Promise<void>
+}
+
+export interface UserPreferencesGateway {
+  getPreferences(): Promise<UserPreferences | null>
+  savePreferences(preferences: UserPreferences): Promise<void>
 }

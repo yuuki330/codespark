@@ -428,11 +428,12 @@ const App: React.FC = () => {
 
   useEffect(() => {
     setSelectedIndex(0)
-  }, [query, selectedLibraryIds, selectedTags, viewMode])
+  }, [query, selectedLibraryIds, selectedTags])
 
   const exitToSearch = useCallback(() => {
     setViewMode('search')
     setQuery('')
+    setSelectedIndex(0)
     searchInputRef.current?.focus()
   }, [])
 

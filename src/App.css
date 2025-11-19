@@ -53,31 +53,6 @@ body {
   backdrop-filter: blur(10px);
 }
 
-.command-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.command-header__title {
-  font-size: 18px;
-  letter-spacing: 0.04em;
-  font-weight: 600;
-}
-
-.command-header__caption {
-  font-size: 11px;
-  color: #94a3b8;
-}
-
-.shortcut-badge {
-  font-size: 11px;
-  border: 1px solid var(--surface-border);
-  border-radius: 999px;
-  padding: 4px 8px;
-  opacity: 0.8;
-}
-
 .search-bar {
   display: flex;
   align-items: center;
@@ -97,54 +72,51 @@ body {
   font-size: 14px;
 }
 
-.filters {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.filter-group__label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--primary-muted);
-}
-
-.filter-chip {
-  font-size: 11px;
-  border-radius: 999px;
-  border: 1px solid var(--chip-border);
-  background: transparent;
-  color: var(--primary-muted);
-  padding: 2px 12px;
-  cursor: pointer;
-  transition: background 140ms ease, border-color 140ms ease;
-}
-
-.filter-chip.is-active {
-  border-color: rgba(59, 130, 246, 0.9);
-  background: rgba(37, 99, 235, 0.22);
-  color: #e2e8f0;
-}
-
-.filter-chip:focus-visible {
-  outline: 2px solid rgba(147, 197, 253, 0.4);
-  outline-offset: 1px;
-}
-
 .snippet-panel {
   max-height: 320px;
   overflow: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.command-surface--panel {
+  width: 720px;
+}
+
+.view-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.back-button {
+  border: 1px solid var(--surface-border);
+  background: transparent;
+  color: var(--primary-muted);
+  border-radius: 999px;
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.back-button:focus-visible {
+  outline: 2px solid rgba(147, 197, 253, 0.4);
+  outline-offset: 2px;
+}
+
+.view-label {
+  font-size: 12px;
+  color: var(--primary-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.command-body {
+  max-height: 360px;
+  overflow: auto;
 }
 
 .snippet-panel__note {
@@ -220,16 +192,6 @@ body {
   font-size: 12px;
   color: #94a3b8;
   padding: 12px 4px;
-}
-
-.creation-panel,
-.editor-panel {
-  border-top: 1px solid rgba(148, 163, 184, 0.25);
-  padding-top: 14px;
-}
-
-.editor-panel {
-  margin-top: 12px;
 }
 
 .snippet-form {

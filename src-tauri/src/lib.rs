@@ -74,7 +74,7 @@ fn select_data_directory(app: AppHandle<Wry>, default_path: Option<String>) -> R
         .file()
         .set_directory(default_path.unwrap_or_default())
         .pick_folder(move |folder| {
-            let _ = sender.send(folder.map(|picked| picked.to_string_lossy().to_string()));
+            let _ = sender.send(folder.map(|picked| picked.to_string()));
         });
     receiver
         .recv()

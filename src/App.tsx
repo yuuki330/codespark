@@ -1,7 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import type { LibraryId, Snippet, SnippetLibrary, TagName } from './core/domain/snippet'
-import { InMemorySnippetDataAccessAdapter } from './core/data-access/snippet'
+import type {
+  LibraryId,
+  Snippet,
+  SnippetDataAccessAdapter,
+  SnippetLibrary,
+  SnippetLibraryDataAccessAdapter,
+  TagName,
+} from './core/domain/snippet'
+import { FileSnippetDataAccessAdapter, InMemorySnippetDataAccessAdapter } from './core/data-access/snippet'
 import { TauriClipboardGateway } from './core/platform'
 import type { SnippetId } from './core/domain/snippet'
 import {
@@ -115,7 +122,12 @@ const generateSnippetId = () => {
   return `snippet-${Date.now().toString(16)}-${randomSuffix}`
 }
 
+type SnippetGateway = SnippetDataAccessAdapter & SnippetLibraryDataAccessAdapter
+
 const App: React.FC = () => {
+  const [storageMode] = useState<'memory' | 'file'>(() =>
+    shouldUseInMemoryStorage() ? 'memory' : 'file'
+  )
   const [query, setQuery] = useState('')
   const [snippets, setSnippets] = useState<Snippet[]>([])
   const [filteredSnippets, setFilteredSnippets] = useState<Snippet[]>([])
@@ -127,7 +139,11 @@ const App: React.FC = () => {
   const [dataVersion, setDataVersion] = useState(0)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const searchInputRef = useRef<SearchInputHandle | null>(null)
-  const snippetGatewayRef = useRef(new InMemorySnippetDataAccessAdapter(initialSnippets))
+  const snippetGatewayRef = useRef<SnippetGateway>(
+    storageMode === 'memory'
+      ? new InMemorySnippetDataAccessAdapter(initialSnippets)
+      : new FileSnippetDataAccessAdapter()
+  )
   const clipboardGatewayRef = useRef(new TauriClipboardGateway())
   const copySnippetUseCase = useMemo(
     () =>
@@ -188,8 +204,43 @@ const App: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    snippetGatewayRef.current.getAll().then(setSnippets)
-  }, [])
+    let cancelled = false
+
+    const loadSnippets = async () => {
+      const gateway = snippetGatewayRef.current
+      if (storageMode === 'file') {
+        const existing = await gateway.getAll()
+        if (existing.length === 0) {
+          await seedInitialSnippets(gateway, initialSnippets)
+          const seeded = await gateway.getAll()
+          if (!cancelled) {
+            setSnippets(seeded)
+          }
+          return
+        }
+        if (!cancelled) {
+          setSnippets(existing)
+        }
+        return
+      }
+
+      const records = await gateway.getAll()
+      if (!cancelled) {
+        setSnippets(records)
+      }
+    }
+
+    loadSnippets().catch(error => {
+      console.error('failed to load snippets', error)
+      if (!cancelled) {
+        setSnippets([])
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [storageMode])
 
   useEffect(() => {
     snippetGatewayRef.current.getLibraries().then(setLibraries)
@@ -513,3 +564,29 @@ const App: React.FC = () => {
 }
 
 export default App
+
+type TauriWindow = typeof window & {
+  __TAURI__?: unknown
+  __TAURI_INTERNALS__?: unknown
+}
+
+const isTauriRuntime = () => {
+  if (typeof window === 'undefined') return false
+  const tauriWindow = window as unknown as TauriWindow
+  return Boolean(tauriWindow.__TAURI_INTERNALS__ || tauriWindow.__TAURI__)
+}
+
+const shouldUseInMemoryStorage = () => {
+  if (import.meta.env.MODE === 'test') return true
+  if (import.meta.env.VITE_USE_IN_MEMORY_SNIPPETS === 'true') return true
+  return !isTauriRuntime()
+}
+
+const seedInitialSnippets = async (
+  gateway: SnippetDataAccessAdapter,
+  seeds: Snippet[]
+): Promise<void> => {
+  for (const snippet of seeds) {
+    await gateway.save(snippet)
+  }
+}

@@ -16,6 +16,7 @@ CodeSpark のスニペットは `FileSnippetDataAccessAdapter` を経由して�
 `<tauri.identifier>` には `tauri.conf.json` の `identifier` フィールド（現状は `com.yuuki330.codespark`）が入る。アプリの識別子を変更した場合でも、ここを揃えておけば保存先のベースパスが自動で切り替わる。
 
 > `snippets.json` が存在しない場合や壊れている場合は、起動時に空ファイルを再作成する。
+> さらに Tauri モードで空ストアを検出した場合は `src/App.tsx` の `initialSnippets`（プロトタイプ用サンプル 3 件）を自動シードする。
 
 Tauri 側の `resolve_store_path` が `scope` を `BaseDirectory` に変換し、`FileSnippetDataAccessAdapter` の `filePath` で指定した相対パスを結合する。必要に応じて以下のオプションで保存先を変更できる。
 
@@ -27,6 +28,11 @@ new FileSnippetDataAccessAdapter({
 ```
 
 `scope` に対応する `BaseDirectory` は [`src-tauri/src/lib.rs`](../src-tauri/src/lib.rs) の `scope_to_base_directory` を参照。
+
+### InMemory モードについて
+- `npm run dev` などブラウザのみで起動した場合、Tauri API が存在しないため自動的に `InMemorySnippetDataAccessAdapter` へフォールバックする
+- `.env.local` などで `VITE_USE_IN_MEMORY_SNIPPETS=true` を設定すると、Tauri バンドルでも InMemory モードを強制できる
+- Vitest (`import.meta.env.MODE === 'test'`) でも同様に InMemory が利用される
 
 ## JSON スキーマ
 トップレベル構造は下記の通り。`version` は現在 `1` 固定で、リーダー側が `STORE_VERSION` と異なる場合は自動的に再正規化される。

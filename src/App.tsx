@@ -565,9 +565,15 @@ const App: React.FC = () => {
 
 export default App
 
+type TauriWindow = typeof window & {
+  __TAURI__?: unknown
+  __TAURI_INTERNALS__?: unknown
+}
+
 const isTauriRuntime = () => {
   if (typeof window === 'undefined') return false
-  return Boolean((window as Record<string, unknown>).__TAURI_INTERNALS__ || (window as Record<string, unknown>).__TAURI__)
+  const tauriWindow = window as unknown as TauriWindow
+  return Boolean(tauriWindow.__TAURI_INTERNALS__ || tauriWindow.__TAURI__)
 }
 
 const shouldUseInMemoryStorage = () => {

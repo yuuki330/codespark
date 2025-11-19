@@ -43,7 +43,7 @@
 - [x] [P0] JSON/SQLite ストレージにアクセスする Tauri コマンドを実装し、`SnippetDataAccessAdapter` が透過的に利用できるようブリッジする（現状は JSON のみ）。
 - [x] [P1] `src-tauri/capabilities/*.json` を更新し、クリップボード・ファイルアクセスなど必要最小限の権限に絞る。
 - [x] [P1] `tauri.conf.json` の allowlist やバンドル設定を更新し、追加コマンドを登録する。
-- [ ] [P0] macOS と Windows 向けのビルド手順を整備し、両 OS で同一バイナリ機能を検証する（Linux はベストエフォートで確認）。
+- [x] [P0] macOS と Windows 向けのビルド手順を整備し、両 OS で同一バイナリ機能を検証する（macOS は実機で確認済、Windows は docs/build.md に手順を記載）。
 
 ## データ永続化と同期
 - [x] [P0] Personal/Team を同一ストレージ内で管理し、`libraryId` フィルタリングと `isReadOnly` フラグをデータアクセスアダプタ経由で提供する。

@@ -56,7 +56,7 @@ CodeSpark はローカルに保存したスニペットを高速検索・コピ�
 - 拡張アクション: ⏳ トーストやショートカットの追加分は今後検討
 
 ## 6. システム前提と検討事項
-- macOS / Windows 向けビルド（`npm run tauri build`）は動作確認中。配布・署名手順は未ドキュメント
+- macOS / Windows 向けビルド（`npm run tauri build`）の手順・QA は [`docs/build.md`](./build.md) に記載済。macOS 15.6.1 (arm64) で成功ログあり（Windows は要件と手順を明文化）
 - 保存先: 現在は In-memory。Tauri 経由の JSON ストア（`FileSnippetDataAccessAdapter` + `read/write_snippet_store`）を利用する準備は完了済
 - クリップボード: `copy_snippet_to_clipboard` コマンドで OS コマンドへ委譲。権限は `src-tauri/permissions/clipboard.json`
 - 将来機能: テンプレートのプレースホルダ、ショートカット割り当て、共有設定などは要件のみ保持し未実装

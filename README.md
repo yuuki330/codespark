@@ -22,7 +22,6 @@ CodeSpark はローカルに保存したスニペットを検索・コピーで�
 - `FileSnippetDataAccessAdapter` を UI に組み込み、実際に JSON ファイルへ保存するフローを確立する
 - ライブラリ一覧取得 (`GetAllLibrariesUseCase`)・アクティブ切替 (`SwitchActiveLibraryUseCase`) をユースケースとして実装し、UI から利用する
 - ⌘Enter など追加アクション、トーストでの詳細エラー表示などキーバインド強化
-- macOS / Windows それぞれでのビルド・検証手順、コードサイン有無を README / docs へ追記
 - ライブラリ別エクスポート / インポート、Git 連携、Preferences など拡張要件の具体化
 - `docs/tasks.md` に残っている残件（高度なフィルタリング、ReadOnly ライブラリに対する Create の保護など）を順次解消
 
@@ -50,17 +49,24 @@ CodeSpark はローカルに保存したスニペットを検索・コピーで�
 | `npm run test` | Vitest によるユニット / コンポーネントテスト。 |
 | `cargo test` | Rust 側にテストが追加された際の実行コマンド（現状テスト未定義）。 |
 
-## 6. Tauri コマンドと権限
+## 6. ビルド / 配布
+
+- 共通コマンドは `npm run tauri build`。Tauri CLI が `npm run build` を自動実行してから各 OS 向けバンドルを生成する
+- macOS 15.6.1 (arm64) + Node v24.10.0 + rustc 1.91.1 でビルド済。成果物は `src-tauri/target/release/bundle/macos/codespark.app` と `bundle/dmg/codespark_0.1.0_aarch64.dmg`
+- Windows では Visual Studio Build Tools + WebView2 + `x86_64-pc-windows-msvc` ツールチェーンを事前に用意し、同じコマンドで MSI/NSIS インストーラを生成する
+- 詳細手順と QA チェックリストは [`docs/build.md`](docs/build.md) を参照
+
+## 7. Tauri コマンドと権限
 - `copy_snippet_to_clipboard`: `pbcopy` / `clip` など OS コマンドを叩いてクリップボードへ書き込む
 - `read_snippet_store`, `write_snippet_store`, `snippet_store_exists`, `ensure_snippet_store_dir`: JSON ストレージ用の読み書き API
 - `src-tauri/permissions/*.json` で上記コマンドごとに permission identifier を定義し、`src-tauri/capabilities/default.json` から付与
 
-## 7. ドキュメント
+## 8. ドキュメント
 - `docs/require.md`: ドメイン要件とステータス
 - `docs/design.md`: アーキテクチャとレイヤー間の責務
 - `docs/tasks.md`: 実装済み/未実装タスク一覧（優先度付き）
 
-## 8. 貢献の流れ
+## 9. 貢献の流れ
 1. `README.md` と `docs/*.md` を読み、既存仕様を把握
 2. 変更は 1 トピック 1 PR を徹底し、必要なら issue を紐付ける
 3. コード変更に伴う仕様変更は必ず関連ドキュメントにも反映

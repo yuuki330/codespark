@@ -14,12 +14,12 @@ CodeSpark はローカルに保存したスニペットを検索・コピーで�
 | ドメイン | `src/core/domain/snippet` に Snippet / Library / Preferences などの型、`constructSnippet`・`applySnippetUpdate`、バリデーションエラー、ReadOnly 例外を集約。 |
 | ユースケース | 検索・空クエリサジェスト・コピー・作成・更新・削除を個別クラスで実装し、`App.tsx` から依存注入。使用履歴とライブラリ保護を含むテストを `src/core/usecases/snippet/*.test.ts` に用意。 |
 | データアクセス | Tauri 実行時は `FileSnippetDataAccessAdapter` を介して `codespark/snippets.json` へ永続化する。ブラウザ開発や Vitest では `InMemorySnippetDataAccessAdapter` を自動利用。`VITE_USE_IN_MEMORY_SNIPPETS=true` で明示的に切り替え可能。 |
+| Preferences | `LocalStorageUserPreferencesGateway` がアクティブライブラリ・テーマを保存し、`GetActiveLibraryUseCase` / `SwitchActiveLibraryUseCase` で UI と同期。 |
 | プラットフォーム | `TauriClipboardGateway` が `copy_snippet_to_clipboard` コマンドを呼び出し、Rust 側で OS ごとのコマンドを実行。 |
 | Rust / Tauri | `src-tauri/src/lib.rs` に clipboard + JSON ストア操作コマンド、`src-tauri/permissions/*.json` にコマンドごとの権限を明示。capability `default` でウィンドウへ付与。 |
 | テスト | React UI（`App.test.tsx`）、`SnippetForm`、各ユースケースのユニットテストを Vitest + RTL で実行。`src/test/setup.ts` で共通セットアップ。 |
 
 ## 3. 未実装または今後の課題
-- ライブラリ一覧取得 (`GetAllLibrariesUseCase`)・アクティブ切替 (`SwitchActiveLibraryUseCase`) をユースケースとして実装し、UI から利用する
 - ⌘Enter など追加アクション、トーストでの詳細エラー表示などキーバインド強化
 - ライブラリ別エクスポート / インポート、Git 連携、Preferences など拡張要件の具体化
 - `docs/tasks.md` に残っている残件（高度なフィルタリング、ReadOnly ライブラリに対する Create の保護など）を順次解消
@@ -76,3 +76,4 @@ CodeSpark はローカルに保存したスニペットを検索・コピーで�
 - `npm run dev` などブラウザのみで起動する場合や Vitest 実行時は InMemory ストアへフォールバックする
 - `.env.local` 等で `VITE_USE_IN_MEMORY_SNIPPETS=true` を設定すると、Tauri 実行時でも InMemory モードを強制できる
 - 初回起動でスニペットが存在しない場合は、プロトタイプ用のサンプル 3 件が JSON にシードされる
+- ライブラリ選択は `localStorage` に保存され、次回起動時に自動復元される（All 選択時は `null` を保存）

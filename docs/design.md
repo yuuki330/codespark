@@ -41,6 +41,8 @@ React UI ──▶ UseCases ──▶ Domain ＋ Ports ◀── Data Access / P
 - キーボード操作: `Enter` でコピー、`↑↓` と `⌘J,K` で移動、`⌘1` で全ライブラリ、`⌘2` 以降で順次切替
 - `SnippetForm` / `SnippetEditor` は共通フォーム値型を利用し、成功/失敗を `NotificationCenter` へ通知
 - `SnippetActionPalette` は Cmd+Enter（Ctrl+Enter）で呼び出され、選択中スニペットに対する編集・削除アクションをキーボード操作で実行できる。アクションは配列定義で拡張可能、Esc でクローズしオーバーレイクリックでも閉じる
+- `FilterGroup` / `FilterChip` を用いた `/list` ビューでライブラリ・タグフィルタを表示し、検索ビューではフィルタを非表示にする。スラッシュコマンド `/create` `/list` `/settings` で専用ビューへ遷移し、左上の戻る矢印または ESC で検索ビューへ戻る
+- `SettingsPanel` はショートカットと保存フォルダ編集 UI のプレースホルダを提供し、後続タスクで Preferences 永続化と Tauri ダイアログに接続する前提
 
 ## 3. データフロー
 1. `App.tsx` 起動時に `InMemorySnippetDataAccessAdapter` を生成し、初期スニペットをロード
@@ -68,6 +70,6 @@ React UI ──▶ UseCases ──▶ Domain ＋ Ports ◀── Data Access / P
 3. Create 時にも ReadOnly ライブラリを防ぐためのガードを導入
 4. ライブラリ別エクスポート / インポート設計と Git 連携案のドキュメント化
 5. macOS / Windows 各 OS でのビルド、コード署名、QA 手順を定義
-6. スラッシュコマンド遷移やタグ複合フィルタなど、残りのキーボードショートカット要件をユースケースとして整理し UI へ反映（Cmd+Enter アクションパレットは実装済）
+6. 設定ビューと Preferences 保存処理（ショートカット記録や保存先変更）の接続、ならびにタグ/フィルタを用いた高度な検索オプションのドキュメント化
 
 この設計メモは README / 要件 / タスクと連携し、変更があれば都度更新する。

@@ -89,4 +89,55 @@ describe('App', () => {
       expect(screen.queryByRole('dialog', { name: 'アクションパレット' })).not.toBeInTheDocument()
     )
   })
+
+  it('navigates to the create view with /create and returns with Escape', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const searchInput = screen.getByPlaceholderText(/スニペットを検索/)
+    await user.type(searchInput, '/create')
+
+    await screen.findByLabelText('タイトル *')
+
+    await user.keyboard('{Escape}')
+
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText(/スニペットを検索/)).toBeInTheDocument()
+    )
+  })
+
+  it('navigates to the list view with /list and returns with the back button', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const searchInput = screen.getByPlaceholderText(/スニペットを検索/)
+    await user.type(searchInput, '/list')
+
+    await screen.findByText('ライブラリ')
+    const filterButtons = await screen.findAllByRole('button', { name: 'すべて' })
+    expect(filterButtons.length).toBeGreaterThan(0)
+
+    const backButton = screen.getByRole('button', { name: '検索画面に戻る' })
+    await user.click(backButton)
+
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText(/スニペットを検索/)).toBeInTheDocument()
+    )
+  })
+
+  it('navigates to the settings view with /settings and returns with Escape', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const searchInput = screen.getByPlaceholderText(/スニペットを検索/)
+    await user.type(searchInput, '/settings')
+
+    await screen.findByText('ショートカット設定')
+
+    await user.keyboard('{Escape}')
+
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText(/スニペットを検索/)).toBeInTheDocument()
+    )
+  })
 })

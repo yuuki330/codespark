@@ -1,4 +1,4 @@
-import type { MouseEvent } from 'react'
+import { useEffect, useRef, type MouseEvent } from 'react'
 
 import type { Snippet } from '../core/domain/snippet'
 
@@ -30,6 +30,16 @@ export function SnippetList({
     return <div className='empty-state'>{emptyMessage}</div>
   }
 
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  useEffect(() => {
+    const selectedIndex = snippets.findIndex(snippet => snippet.id === selectedSnippetId)
+    if (selectedIndex === -1) return
+    const target = itemRefs.current[selectedIndex]
+    if (!target || typeof target.scrollIntoView !== 'function') return
+    target.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+  }, [snippets, selectedSnippetId])
+
   return (
     <div className='snippet-list' aria-live='polite'>
       {mode === 'suggestion' ? (
@@ -54,6 +64,9 @@ export function SnippetList({
             tabIndex={0}
             aria-pressed={isSelected}
             className={className}
+            ref={element => {
+              itemRefs.current[index] = element
+            }}
             onMouseEnter={() => onHover(index)}
             onClick={handleClick}
           >

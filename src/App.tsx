@@ -31,6 +31,8 @@ import {
   SnippetForm,
   type SnippetFormValues,
   SnippetEditor,
+  SnippetActionPalette,
+  type SnippetActionPaletteItem,
 } from './components'
 
 import './App.css'
@@ -140,6 +142,7 @@ const App: React.FC = () => {
   const [dataVersion, setDataVersion] = useState(0)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('search')
+  const [actionSnippet, setActionSnippet] = useState<Snippet | null>(null)
   const searchInputRef = useRef<SearchInputHandle | null>(null)
   const snippetGatewayRef = useRef<SnippetGateway>(
     storageMode === 'memory'
@@ -322,6 +325,7 @@ const App: React.FC = () => {
   const filteredCount = filteredSnippets.length
   const isEmptyQuery = query.trim().length === 0
   const selectedSnippet = filteredSnippets[selectedIndex] ?? null
+  const isActionPaletteOpen = Boolean(actionSnippet)
 
   const refreshSnippets = useCallback(async () => {
     await snippetGatewayRef.current.getAll()
@@ -381,6 +385,10 @@ const App: React.FC = () => {
     setViewMode('search')
     setQuery('')
     searchInputRef.current?.focus()
+  }, [])
+
+  const closeActionPalette = useCallback(() => {
+    setActionSnippet(null)
   }, [])
 
   const handleCreateSnippet = useCallback(
@@ -491,6 +499,7 @@ const App: React.FC = () => {
       }
 
       if (viewMode !== 'search') return
+      if (actionSnippet) return
       if (filteredCount === 0) return
 
       const isNextByLetter = (event.key === 'j' || event.key === 'J') && modifierActive
@@ -511,9 +520,9 @@ const App: React.FC = () => {
       if (modifierActive && event.key === 'Enter') {
         event.preventDefault()
         if (selectedSnippet) {
-          setViewMode('edit')
+          setActionSnippet(selectedSnippet)
         } else {
-          pushNotification('error', '編集対象のスニペットがありません')
+          pushNotification('error', 'アクションを実行できるスニペットがありません')
         }
         return
       }
@@ -529,7 +538,55 @@ const App: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [filteredCount, filteredSnippets, handleCopySnippet, handleSelectAllLibraries, libraries, selectedIndex, selectedSnippet, viewMode, pushNotification])
+  }, [
+    actionSnippet,
+    filteredCount,
+    filteredSnippets,
+    handleCopySnippet,
+    handleSelectAllLibraries,
+    libraries,
+    selectedIndex,
+    selectedSnippet,
+    viewMode,
+    pushNotification,
+  ])
+
+  useEffect(() => {
+    if (viewMode !== 'search' && actionSnippet) {
+      setActionSnippet(null)
+    }
+  }, [actionSnippet, viewMode])
+
+  useEffect(() => {
+    if (!selectedSnippet && actionSnippet) {
+      setActionSnippet(null)
+    }
+  }, [actionSnippet, selectedSnippet])
+
+  const snippetActions = useMemo<SnippetActionPaletteItem[]>(() => {
+    if (!actionSnippet) return []
+    const snippetId = actionSnippet.id
+    return [
+      {
+        id: 'edit-snippet',
+        label: 'スニペットを編集',
+        description: '既存の編集フォームで内容を更新します',
+        onSelect: () => {
+          setActionSnippet(null)
+          setViewMode('edit')
+        },
+      },
+      {
+        id: 'delete-snippet',
+        label: 'スニペットを削除',
+        description: '削除後は検索ビューに戻ります',
+        onSelect: async () => {
+          setActionSnippet(null)
+          await handleDeleteSnippet(snippetId)
+        },
+      },
+    ]
+  }, [actionSnippet, handleDeleteSnippet])
 
   const isSecondaryView = viewMode !== 'search'
   const containerClass = viewMode === 'search' ? 'command-surface' : 'command-surface command-surface--panel'
@@ -595,7 +652,14 @@ const App: React.FC = () => {
           ) : null}
         </div>
       </div>
-
+      {isActionPaletteOpen && actionSnippet ? (
+        <SnippetActionPalette
+          isOpen={isActionPaletteOpen}
+          snippetTitle={actionSnippet.title}
+          actions={snippetActions}
+          onClose={closeActionPalette}
+        />
+      ) : null}
       <NotificationCenter notifications={notifications} />
     </>
   )

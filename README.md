@@ -10,7 +10,7 @@ CodeSpark はローカルに保存したスニペットを検索・コピーで�
 ## 2. 現在の実装状況
 | 領域 | 実装内容 |
 | --- | --- |
-| UI | 検索バーと結果リストのみを基本表示とし、`Enter` / `↑↓` / `⌘J,K` で候補操作、`⌘Enter`（Ctrl+Enter）で編集ビューへ遷移するコマンドパレット式 UX。`/create` などでモード切替。 |
+| UI | 検索バーと結果リストのみを基本表示とし、`Enter` / `↑↓` / `⌘J,K` で候補操作、`⌘Enter`（Ctrl+Enter）でアクションパレットを開き、編集または削除などのメニューをキーボードだけで選択できるコマンドパレット式 UX。`/create` などでモード切替。 |
 | ドメイン | `src/core/domain/snippet` に Snippet / Library / Preferences などの型、`constructSnippet`・`applySnippetUpdate`、バリデーションエラー、ReadOnly 例外を集約。 |
 | ユースケース | 検索・空クエリサジェスト・コピー・作成・更新・削除を個別クラスで実装し、`App.tsx` から依存注入。使用履歴とライブラリ保護を含むテストを `src/core/usecases/snippet/*.test.ts` に用意。 |
 | データアクセス | Tauri 実行時は `FileSnippetDataAccessAdapter` を介して `codespark/snippets.json` へ永続化する。ブラウザ開発や Vitest では `InMemorySnippetDataAccessAdapter` を自動利用。`VITE_USE_IN_MEMORY_SNIPPETS=true` で明示的に切り替え可能。 |
@@ -20,7 +20,7 @@ CodeSpark はローカルに保存したスニペットを検索・コピーで�
 | テスト | React UI（`App.test.tsx`）、`SnippetForm`、各ユースケースのユニットテストを Vitest + RTL で実行。`src/test/setup.ts` で共通セットアップ。 |
 
 ## 3. 未実装または今後の課題
-- ⌘Enter など追加アクション、トーストでの詳細エラー表示などキーバインド強化
+- ⌘Enter でのアクションパレット強化（今後は新規アクションの追加）
 - ライブラリ別エクスポート / インポート、Git 連携、Preferences など拡張要件の具体化
 - `docs/tasks.md` に残っている残件（高度なフィルタリング、ReadOnly ライブラリに対する Create の保護など）を順次解消
 

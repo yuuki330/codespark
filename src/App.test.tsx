@@ -40,6 +40,8 @@ describe('App', () => {
     render(<App />)
 
     await user.keyboard('{Control>}{Enter}{/Control}')
+    await screen.findByRole('dialog', { name: 'アクションパレット' })
+    await user.keyboard('{Enter}')
 
     const editTitle = await screen.findByLabelText('タイトル (編集) *')
     await waitFor(() => expect(editTitle).toHaveValue('ログ出力（Python）'))
@@ -55,14 +57,14 @@ describe('App', () => {
     await waitFor(() => expect(editTitle).toHaveValue('ログ出力（更新版）'))
   })
 
-  it('allows deleting the selected snippet from the editor', async () => {
+  it('allows deleting the selected snippet from the action palette', async () => {
     const user = userEvent.setup()
     render(<App />)
 
     await user.keyboard('{Control>}{Enter}{/Control}')
-
-    const deleteButton = await screen.findByRole('button', { name: 'スニペットを削除' })
-    await user.click(deleteButton)
+    await screen.findByRole('dialog', { name: 'アクションパレット' })
+    await user.keyboard('{ArrowDown}')
+    await user.keyboard('{Enter}')
 
     await screen.findByText('スニペットを削除しました: ログ出力（Python）')
 
@@ -72,5 +74,19 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: /ログ出力（Python）/ })).not.toBeInTheDocument()
     })
+  })
+
+  it('closes the action palette with Escape', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.keyboard('{Control>}{Enter}{/Control}')
+    await screen.findByRole('dialog', { name: 'アクションパレット' })
+
+    await user.keyboard('{Escape}')
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'アクションパレット' })).not.toBeInTheDocument()
+    )
   })
 })

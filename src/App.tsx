@@ -6,7 +6,6 @@ import type {
   SnippetDataAccessAdapter,
   SnippetLibrary,
   SnippetLibraryDataAccessAdapter,
-  TagName,
   UserPreferencesGateway,
 } from './core/domain/snippet'
 import { FileSnippetDataAccessAdapter, InMemorySnippetDataAccessAdapter } from './core/data-access/snippet'
@@ -25,8 +24,6 @@ import {
 } from './core/usecases'
 import type { Notification } from './components'
 import {
-  FilterChip,
-  FilterGroup,
   NotificationCenter,
   SearchInput,
   type SearchInputHandle,
@@ -34,7 +31,6 @@ import {
   SnippetForm,
   type SnippetFormValues,
   SnippetEditor,
-  type SnippetEditorHandle,
 } from './components'
 
 import './App.css'
@@ -129,20 +125,21 @@ const generateSnippetId = () => {
 
 type SnippetGateway = SnippetDataAccessAdapter & SnippetLibraryDataAccessAdapter
 
+type ViewMode = 'search' | 'create' | 'edit'
+
 const App: React.FC = () => {
   const [storageMode] = useState<'memory' | 'file'>(() =>
     shouldUseInMemoryStorage() ? 'memory' : 'file'
   )
   const [query, setQuery] = useState('')
-  const [snippets, setSnippets] = useState<Snippet[]>([])
   const [filteredSnippets, setFilteredSnippets] = useState<Snippet[]>([])
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [copiedSnippetId, setCopiedSnippetId] = useState<string | null>(null)
   const [libraries, setLibraries] = useState<SnippetLibrary[]>([])
   const [selectedLibraryIds, setSelectedLibraryIds] = useState<LibraryId[]>([])
-  const [selectedTags, setSelectedTags] = useState<TagName[]>([])
   const [dataVersion, setDataVersion] = useState(0)
   const [notifications, setNotifications] = useState<Notification[]>([])
+  const [viewMode, setViewMode] = useState<ViewMode>('search')
   const searchInputRef = useRef<SearchInputHandle | null>(null)
   const snippetGatewayRef = useRef<SnippetGateway>(
     storageMode === 'memory'
@@ -151,7 +148,8 @@ const App: React.FC = () => {
   )
   const preferencesGatewayRef = useRef<UserPreferencesGateway>(new LocalStorageUserPreferencesGateway())
   const clipboardGatewayRef = useRef(new TauriClipboardGateway())
-  const snippetEditorRef = useRef<SnippetEditorHandle | null>(null)
+  const selectedLibraryIdsRef = useRef<LibraryId[]>([])
+
   const copySnippetUseCase = useMemo(
     () =>
       new CopySnippetUseCase({
@@ -227,42 +225,21 @@ const App: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    let cancelled = false
-
     const loadSnippets = async () => {
       const gateway = snippetGatewayRef.current
       if (storageMode === 'file') {
         const existing = await gateway.getAll()
         if (existing.length === 0) {
           await seedInitialSnippets(gateway, initialSnippets)
-          const seeded = await gateway.getAll()
-          if (!cancelled) {
-            setSnippets(seeded)
-          }
-          return
         }
-        if (!cancelled) {
-          setSnippets(existing)
-        }
-        return
-      }
-
-      const records = await gateway.getAll()
-      if (!cancelled) {
-        setSnippets(records)
+      } else {
+        await gateway.getAll()
       }
     }
 
     loadSnippets().catch(error => {
       console.error('failed to load snippets', error)
-      if (!cancelled) {
-        setSnippets([])
-      }
     })
-
-    return () => {
-      cancelled = true
-    }
   }, [storageMode])
 
   useEffect(() => {
@@ -298,7 +275,11 @@ const App: React.FC = () => {
 
   useEffect(() => {
     searchInputRef.current?.focus()
-  }, [])
+  }, [viewMode])
+
+  useEffect(() => {
+    selectedLibraryIdsRef.current = selectedLibraryIds
+  }, [selectedLibraryIds])
 
   useEffect(() => {
     let cancelled = false
@@ -307,7 +288,6 @@ const App: React.FC = () => {
       .execute({
         query,
         libraryIds: selectedLibraryIds,
-        tags: selectedTags,
       })
       .then(results => {
         if (cancelled) return
@@ -323,77 +303,28 @@ const App: React.FC = () => {
     return () => {
       cancelled = true
     }
-  }, [query, selectedLibraryIds, selectedTags, searchSnippetsUseCase, dataVersion])
+  }, [query, selectedLibraryIds, searchSnippetsUseCase, dataVersion])
 
-  const availableTags = useMemo(() => {
-    const tagSet = new Set<TagName>()
-    snippets.forEach(snippet => {
-      snippet.tags.forEach(tag => tagSet.add(tag))
-    })
-    return Array.from(tagSet).sort((a, b) => a.localeCompare(b))
-  }, [snippets])
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && viewMode !== 'search') {
+        event.preventDefault()
+        setViewMode('search')
+        setQuery('')
+        searchInputRef.current?.focus()
+      }
+    }
+
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [viewMode])
 
   const filteredCount = filteredSnippets.length
-  const isAllLibrariesSelected = selectedLibraryIds.length === 0
   const isEmptyQuery = query.trim().length === 0
-
-  const selectedLibraryIdsRef = useRef<LibraryId[]>([])
-  useEffect(() => {
-    selectedLibraryIdsRef.current = selectedLibraryIds
-  }, [selectedLibraryIds])
-
-  const applyLibrarySelection = useCallback(
-    async (nextIds: LibraryId[]) => {
-      try {
-        await switchActiveLibraryUseCase.execute({ libraryId: nextIds[0] ?? null })
-        setSelectedLibraryIds(nextIds)
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : 'ライブラリ選択の保存に失敗しました'
-        pushNotification('error', message)
-      }
-    },
-    [pushNotification, switchActiveLibraryUseCase]
-  )
-
-  const toggleLibrarySelection = useCallback(
-    (libraryId: LibraryId) => {
-      const current = selectedLibraryIdsRef.current
-      const next = current.length === 1 && current[0] === libraryId ? [] : [libraryId]
-      void applyLibrarySelection(next)
-    },
-    [applyLibrarySelection]
-  )
-
-  const handleSelectAllLibraries = useCallback(() => {
-    void applyLibrarySelection([])
-  }, [applyLibrarySelection])
-
-  const toggleTagSelection = (tag: TagName) => {
-    setSelectedTags(current => {
-      if (current.includes(tag)) {
-        return current.filter(activeTag => activeTag !== tag)
-      }
-      return [...current, tag]
-    })
-  }
-
-  const clearTagFilter = () => setSelectedTags([])
-
-  useEffect(() => {
-    setSelectedIndex(current => {
-      if (filteredCount === 0) return 0
-      return Math.min(current, filteredCount - 1)
-    })
-  }, [filteredCount])
-
-  useEffect(() => {
-    setSelectedIndex(0)
-  }, [query, selectedLibraryIds, selectedTags])
+  const selectedSnippet = filteredSnippets[selectedIndex] ?? null
 
   const refreshSnippets = useCallback(async () => {
-    const next = await snippetGatewayRef.current.getAll()
-    setSnippets(next)
+    await snippetGatewayRef.current.getAll()
     setDataVersion(version => version + 1)
   }, [])
 
@@ -417,67 +348,40 @@ const App: React.FC = () => {
     [copySnippetUseCase, pushNotification, refreshSnippets]
   )
 
+  const applyLibrarySelection = useCallback(
+    async (nextIds: LibraryId[]) => {
+      try {
+        await switchActiveLibraryUseCase.execute({ libraryId: nextIds[0] ?? null })
+        setSelectedLibraryIds(nextIds)
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'ライブラリ選択の保存に失敗しました'
+        pushNotification('error', message)
+      }
+    },
+    [pushNotification, switchActiveLibraryUseCase]
+  )
+
+  const handleSelectAllLibraries = useCallback(() => {
+    void applyLibrarySelection([])
+  }, [applyLibrarySelection])
+
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const modifierActive = event.metaKey || event.ctrlKey
-      if (modifierActive && /^[1-9]$/.test(event.key)) {
-        const digit = Number(event.key)
-        if (digit === 1) {
-          event.preventDefault()
-          handleSelectAllLibraries()
-          return
-        }
-        const index = digit - 2
-        const targetLibrary = libraries[index]
-        if (targetLibrary) {
-          event.preventDefault()
-          setSelectedLibraryIds([targetLibrary.id])
-          return
-        }
-      }
+    setSelectedIndex(current => {
+      if (filteredCount === 0) return 0
+      return Math.min(current, filteredCount - 1)
+    })
+  }, [filteredCount])
 
-      if (filteredCount === 0) return
-      const isNextByLetter = (event.key === 'j' || event.key === 'J') && modifierActive
-      const isPrevByLetter = (event.key === 'k' || event.key === 'K') && modifierActive
+  useEffect(() => {
+    setSelectedIndex(0)
+  }, [query, selectedLibraryIds])
 
-      if (event.key === 'ArrowDown' || isNextByLetter) {
-        event.preventDefault()
-        setSelectedIndex(current => Math.min(current + 1, filteredCount - 1))
-        return
-      }
-
-      if (event.key === 'ArrowUp' || isPrevByLetter) {
-        event.preventDefault()
-        setSelectedIndex(current => Math.max(current - 1, 0))
-        return
-      }
-
-      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-        event.preventDefault()
-        if (filteredSnippets[selectedIndex]) {
-          snippetEditorRef.current?.focusTitle()
-        }
-        return
-      }
-
-      if (event.key === 'Enter' && !event.shiftKey && !modifierActive) {
-        const snippet = filteredSnippets[selectedIndex]
-        if (snippet) {
-          event.preventDefault()
-          handleCopySnippet(snippet)
-        }
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [filteredCount, filteredSnippets, handleCopySnippet, libraries, selectedIndex])
-
-  const selectedSnippet = filteredSnippets[selectedIndex] ?? null
-  const defaultWritableLibraryId = useMemo(() => {
-    const writable = libraries.find(library => !library.isReadOnly)
-    return writable?.id ?? libraries[0]?.id
-  }, [libraries])
+  const exitToSearch = useCallback(() => {
+    setViewMode('search')
+    setQuery('')
+    searchInputRef.current?.focus()
+  }, [])
 
   const handleCreateSnippet = useCallback(
     async (values: SnippetFormValues) => {
@@ -494,13 +398,14 @@ const App: React.FC = () => {
         })
         await refreshSnippets()
         pushNotification('success', `スニペットを追加しました: ${values.title}`)
+        exitToSearch()
       } catch (error) {
         const message = error instanceof Error ? error.message : 'スニペットの追加に失敗しました'
         pushNotification('error', `スニペットを追加できませんでした: ${message}`)
         throw error
       }
     },
-    [createSnippetUseCase, pushNotification, refreshSnippets]
+    [createSnippetUseCase, exitToSearch, pushNotification, refreshSnippets]
   )
 
   const handleUpdateSnippet = useCallback(
@@ -521,13 +426,14 @@ const App: React.FC = () => {
         })
         await refreshSnippets()
         pushNotification('success', `スニペットを更新しました: ${values.title}`)
+        exitToSearch()
       } catch (error) {
         const message = error instanceof Error ? error.message : 'スニペットの更新に失敗しました'
         pushNotification('error', `スニペットを更新できませんでした: ${message}`)
         throw error
       }
     },
-    [updateSnippetUseCase, refreshSnippets, pushNotification]
+    [exitToSearch, pushNotification, refreshSnippets, updateSnippetUseCase]
   )
 
   const handleDeleteSnippet = useCallback(
@@ -537,102 +443,156 @@ const App: React.FC = () => {
         await refreshSnippets()
         setSelectedIndex(0)
         pushNotification('success', `スニペットを削除しました: ${result.deletedSnippet.title}`)
+        exitToSearch()
       } catch (error) {
         const message = error instanceof Error ? error.message : 'スニペットの削除に失敗しました'
         pushNotification('error', `スニペットを削除できませんでした: ${message}`)
         throw error
       }
     },
-    [deleteSnippetUseCase, refreshSnippets, pushNotification]
+    [deleteSnippetUseCase, exitToSearch, pushNotification, refreshSnippets]
   )
+
+  const defaultWritableLibraryId = useMemo(() => {
+    const writable = libraries.find(library => !library.isReadOnly)
+    return writable?.id ?? libraries[0]?.id
+  }, [libraries])
+
+  const handleSearchInputChange = useCallback(
+    (value: string) => {
+      setQuery(value)
+      const trimmed = value.trim().toLowerCase()
+      if (trimmed === '/create') {
+        setViewMode('create')
+        setQuery('')
+      }
+    },
+    []
+  )
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const modifierActive = event.metaKey || event.ctrlKey
+
+      if (modifierActive && /^[1-9]$/.test(event.key) && viewMode === 'search') {
+        const digit = Number(event.key)
+        if (digit === 1) {
+          event.preventDefault()
+          handleSelectAllLibraries()
+          return
+        }
+        const index = digit - 2
+        const targetLibrary = libraries[index]
+        if (targetLibrary) {
+          event.preventDefault()
+          setSelectedLibraryIds([targetLibrary.id])
+          return
+        }
+      }
+
+      if (viewMode !== 'search') return
+      if (filteredCount === 0) return
+
+      const isNextByLetter = (event.key === 'j' || event.key === 'J') && modifierActive
+      const isPrevByLetter = (event.key === 'k' || event.key === 'K') && modifierActive
+
+      if (event.key === 'ArrowDown' || isNextByLetter) {
+        event.preventDefault()
+        setSelectedIndex(current => Math.min(current + 1, filteredCount - 1))
+        return
+      }
+
+      if (event.key === 'ArrowUp' || isPrevByLetter) {
+        event.preventDefault()
+        setSelectedIndex(current => Math.max(current - 1, 0))
+        return
+      }
+
+      if (modifierActive && event.key === 'Enter') {
+        event.preventDefault()
+        if (selectedSnippet) {
+          setViewMode('edit')
+        } else {
+          pushNotification('error', '編集対象のスニペットがありません')
+        }
+        return
+      }
+
+      if (event.key === 'Enter' && !event.shiftKey && !modifierActive) {
+        const snippet = filteredSnippets[selectedIndex]
+        if (snippet) {
+          event.preventDefault()
+          handleCopySnippet(snippet)
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [filteredCount, filteredSnippets, handleCopySnippet, handleSelectAllLibraries, libraries, selectedIndex, selectedSnippet, viewMode, pushNotification])
+
+  const isSecondaryView = viewMode !== 'search'
+  const containerClass = viewMode === 'search' ? 'command-surface' : 'command-surface command-surface--panel'
+  const viewLabel = viewMode === 'create' ? 'スニペットを追加' : 'スニペットを編集'
 
   return (
     <>
       <div className='app-shell'>
-        <div className='command-surface'>
-          <div className='command-header'>
-            <div>
-              <div className='command-header__title'>CodeSpark</div>
-              <div className='command-header__caption'>Local snippet launcher (React prototype)</div>
+        <div className={containerClass}>
+          {isSecondaryView ? (
+            <div className='view-toolbar'>
+              <button className='back-button' type='button' onClick={exitToSearch} aria-label='検索画面に戻る'>
+                ←
+              </button>
+              <span className='view-label'>{viewLabel}</span>
             </div>
-            <div className='shortcut-badge'>⌘⇧Space</div>
-          </div>
+          ) : null}
 
-          <SearchInput ref={searchInputRef} value={query} onChange={setQuery} />
+          {viewMode === 'search' ? (
+            <>
+              <SearchInput
+                ref={searchInputRef}
+                value={query}
+                onChange={handleSearchInputChange}
+                placeholder='スニペットを検索 / /create'
+              />
 
-          <div className='filters'>
-            <FilterGroup label='Libraries'>
-              <FilterChip active={isAllLibrariesSelected} onClick={handleSelectAllLibraries} title='⌘1'>
-                All
-              </FilterChip>
-              {libraries.map((library, index) => {
-                const shortcut = `⌘${index + 2}`
-                return (
-                  <FilterChip
-                    key={library.id}
-                    active={selectedLibraryIds.includes(library.id)}
-                    onClick={() => toggleLibrarySelection(library.id)}
-                    title={`${shortcut} で ${library.name} に切り替え`}
-                  >
-                    {library.name}
-                  </FilterChip>
-                )
-              })}
-            </FilterGroup>
+              <div className='snippet-panel'>
+                <SnippetList
+                  snippets={filteredSnippets}
+                  selectedSnippetId={selectedSnippet?.id ?? null}
+                  copiedSnippetId={copiedSnippetId}
+                  onSelect={handleCopySnippet}
+                  onHover={index => setSelectedIndex(index)}
+                  mode={isEmptyQuery ? 'suggestion' : 'search'}
+                  emptyMessage={
+                    isEmptyQuery ? 'お気に入りや最近使用のスニペットがまだありません' : '一致するスニペットがありません'
+                  }
+                />
+              </div>
+            </>
+          ) : null}
 
-            <FilterGroup label='Tags'>
-              {availableTags.length === 0 ? (
-                <span className='filter-group__label' style={{ textTransform: 'none' }}>
-                  タグがまだありません
-                </span>
-              ) : (
-                availableTags.map(tag => (
-                  <FilterChip
-                    key={tag}
-                    active={selectedTags.includes(tag)}
-                    onClick={() => toggleTagSelection(tag)}
-                  >
-                    {tag}
-                  </FilterChip>
-                ))
-              )}
-              {selectedTags.length > 0 ? (
-                <FilterChip onClick={clearTagFilter}>Clear</FilterChip>
-              ) : null}
-            </FilterGroup>
-          </div>
+          {viewMode === 'create' ? (
+            <div className='command-body'>
+              <SnippetForm
+                libraries={libraries}
+                defaultLibraryId={defaultWritableLibraryId}
+                onSubmit={handleCreateSnippet}
+              />
+            </div>
+          ) : null}
 
-          <div className='snippet-panel'>
-            <SnippetList
-              snippets={filteredSnippets}
-              selectedSnippetId={selectedSnippet?.id ?? null}
-              copiedSnippetId={copiedSnippetId}
-              onSelect={handleCopySnippet}
-              onHover={index => setSelectedIndex(index)}
-              mode={isEmptyQuery ? 'suggestion' : 'search'}
-              emptyMessage={
-                isEmptyQuery ? 'お気に入りや最近使用のスニペットがまだありません' : '一致するスニペットがありません'
-              }
-            />
-          </div>
-
-          <div className='creation-panel'>
-            <SnippetForm
-              libraries={libraries}
-              defaultLibraryId={defaultWritableLibraryId}
-              onSubmit={handleCreateSnippet}
-            />
-          </div>
-
-          <div className='editor-panel'>
-            <SnippetEditor
-              ref={snippetEditorRef}
-              snippet={selectedSnippet}
-              libraries={libraries}
-              onSubmit={handleUpdateSnippet}
-              onDelete={handleDeleteSnippet}
-            />
-          </div>
+          {viewMode === 'edit' ? (
+            <div className='command-body'>
+              <SnippetEditor
+                snippet={selectedSnippet}
+                libraries={libraries}
+                onSubmit={handleUpdateSnippet}
+                onDelete={handleDeleteSnippet}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
 

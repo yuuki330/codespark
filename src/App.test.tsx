@@ -9,7 +9,9 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    // Wait for form to become ready
+    const searchInput = screen.getByPlaceholderText(/スニペットを検索/)
+    await user.type(searchInput, '/create')
+
     const titleInput = await screen.findByLabelText('タイトル *')
 
     await user.type(titleInput, 'Env loader snippet')
@@ -20,9 +22,9 @@ describe('App', () => {
 
     await screen.findByText('スニペットを追加しました: Env loader snippet')
 
-    const searchInput = screen.getByPlaceholderText('Search snippets…')
-    await user.clear(searchInput)
-    await user.type(searchInput, 'Env loader snippet')
+    const searchInputAfter = screen.getByPlaceholderText(/スニペットを検索/)
+    await user.clear(searchInputAfter)
+    await user.type(searchInputAfter, 'Env loader snippet')
 
     await waitFor(() =>
       expect(
@@ -36,6 +38,8 @@ describe('App', () => {
   it('allows editing an existing snippet from the editor form', async () => {
     const user = userEvent.setup()
     render(<App />)
+
+    await user.keyboard('{Control>}{Enter}{/Control}')
 
     const editTitle = await screen.findByLabelText('タイトル (編集) *')
     await waitFor(() => expect(editTitle).toHaveValue('ログ出力（Python）'))
@@ -55,12 +59,14 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
+    await user.keyboard('{Control>}{Enter}{/Control}')
+
     const deleteButton = await screen.findByRole('button', { name: 'スニペットを削除' })
     await user.click(deleteButton)
 
     await screen.findByText('スニペットを削除しました: ログ出力（Python）')
 
-    const searchInput = screen.getByPlaceholderText('Search snippets…')
+    const searchInput = screen.getByPlaceholderText(/スニペットを検索/)
     await user.type(searchInput, 'ログ出力')
 
     await waitFor(() => {

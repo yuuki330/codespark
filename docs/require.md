@@ -5,7 +5,7 @@
 | --- | --- | --- |
 | ドメインモデル | ✅ 実装済 | Snippet / Library / Tag / Preferences 型、`constructSnippet`、バリデーション、ReadOnly 例外を `src/core/domain/snippet` に集約。 |
 | CRUD ユースケース | ✅ 実装済 | 検索、空クエリサジェスト、コピー、作成、更新、削除が `src/core/usecases/snippet` に揃い、Vitest テスト付き。 |
-| UI 主要機能 | ✅ 実装済（一部課題あり） | 検索バー、フィルタ、リスト、フォーム、通知、ショートカットを `App.tsx` + `src/components/` で提供。⌘Enter など追加操作は未実装。 |
+| UI 主要機能 | ✅ 実装済（一部課題あり） | 検索バー、フィルタ、リスト、フォーム、通知、ショートカットを `App.tsx` + `src/components/` で提供。今後は検索ビューの簡素化やスラッシュコマンド導線を追加。 |
 | データ永続化 | ⚠️ プロトタイプ | In-memory 実装で動作。Tauri 経由の JSON アダプタは完成済だが UI 未接続。 |
 | ライブラリ＆Preferences 拡張 | ⏳ 未着手 | `GetAllLibrariesUseCase` `SwitchActiveLibraryUseCase`、UserPreferences の保存・読込などは今後対応。 |
 | ドキュメント | ✅ 更新済 | README / 設計 / タスクに最新状況を反映。 |
@@ -52,14 +52,14 @@ CodeSpark はローカルに保存したスニペットを高速検索・コピ�
 ## 5. Raycast ライクな体験要件（実装状況）
 - 起動時フォーカス: ✅ `SearchInput` へ `useEffect` でフォーカス
 - サジェスト: ✅ 空クエリ時にお気に入り + 最近利用を提示
-- キーボード操作: ✅ `Enter` でコピー、`↑↓` / `⌘J,K` で選択移動、`⌘Enter`（Ctrl+Enter）でエディタへフォーカス
-- 拡張アクション: ⏳ トーストやショートカットの追加分は今後検討
+- キーボード操作: ✅ `Enter` でコピー、`↑↓` / `⌘J,K` で選択移動、`⌘Enter`（Ctrl+Enter）でアクションパレットを開く実装を追加予定
+- 拡張アクション: ⏳ Cmd+Enter で「編集 or 削除」を選択するダイアログ、`/create` `/list` `/settings` などのスラッシュコマンド遷移、選択行の自動スクロールを実装予定
 
-## 6. システム前提と検討事項
-- macOS / Windows 向けビルド（`npm run tauri build`）の手順・QA は [`docs/build.md`](./build.md) に記載済。macOS 15.6.1 (arm64) で成功ログあり（Windows は要件と手順を明文化）
-- 保存先: Tauri 実行時は JSON ストア（`FileSnippetDataAccessAdapter` + `read/write_snippet_store`）へ永続化。ブラウザ開発やテストでは自動的に `InMemorySnippetDataAccessAdapter` へフォールバック。`.env` の `VITE_USE_IN_MEMORY_SNIPPETS` で強制切り替え可
-- クリップボード: `copy_snippet_to_clipboard` コマンドで OS コマンドへ委譲。権限は `src-tauri/permissions/clipboard.json`
-- 将来機能: テンプレートのプレースホルダ、ショートカット割り当て、共有設定などは要件のみ保持し未実装
+- シンプルビュー: 検索画面はコマンドパレット風 UI とし、画面の縁やヘッダーを無くして検索バー＋結果リストのみ表示。フィルタやフォームは専用ルート（`/list` `/create` `/settings`）に移動
+- `/create``/list``/settings` などのスラッシュコマンドで即時遷移し、左上の戻る矢印ボタンまたは ESC キーで検索画面へ戻る
+- Cmd+Enter は「編集に移動」「削除を実行」など複数アクションを提示するダイアログを呼び出す。将来的に他アクションを追加できるよう設計する
+- 設定画面（フル画面）でショートカット・保存フォルダ・その他設定を変更可能。ショートカットは任意キーを記録する UI、保存フォルダは Tauri のネイティブダイアログで選択。設定データはスニペット保存領域と同じ JSON ストアにまとめる
+- 自動スクロール: `↑↓` や `Cmd+J/K` で選択を動かしたとき、リストの外に出ないよう最小限スクロールする
 
 ## 7. 今後のフォローアップ
 1. File アダプタの UI 統合とストアマイグレーション仕様

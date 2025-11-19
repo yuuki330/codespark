@@ -1,6 +1,5 @@
 import type {
   LibraryId,
-  SnippetLibrary,
   SnippetLibraryDataAccessAdapter,
   UserPreferences,
   UserPreferencesGateway,

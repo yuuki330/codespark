@@ -47,3 +47,18 @@ CodeSpark のデスクトップバンドルは Tauri 2.x を利用しており�
 
 ## 参考
 - Tauri 公式: https://tauri.app/start/prerequisites/
+
+## Q&A / 運用メモ
+
+### Q1. Visual Studio Build Tools を社内 PC に入れても問題ない？
+
+企業（従業員 5 名超）では Visual Studio Community/Build Tools を無償で利用できないため、**有償の Visual Studio Professional / Enterprise サブスクリプション**が必要です。社内でローカル Windows ビルド環境を整備する場合は、ライセンスチームと連携し、正規のサブスクリプションで管理されたマシンを用意してください。
+
+### Q2. Windows バイナリを無料でビルドする方法は？
+
+- **GitHub Actions** の `windows-latest` ランナーを使うと Visual Studio / WebView2 / WiX / NSIS が揃っているため、`npm run tauri build` を無料枠で実行可能（パブリックリポジトリなら完全無料）。プライベートリポジトリでも月 2,000 分までは無料（Windows ランナーは 2× 換算）。
+- **自己ホストランナー** を登録すれば、社内 Windows マシン上で Actions を動かせるため GitHub の分数を消費しません。
+
+### Q3. コンテナや Docker で Windows バイナリは作れる？
+
+現時点では Tauri の MSI/NSIS 生成に Windows API と WiX/NSIS 実行ファイルが必要なため、macOS / Linux 上の Docker だけで完結させるのは困難です。Windows CI（GitHub Actions や Azure DevOps）を使用するか、ライセンス済みの Windows VM を用意するのが現実的です。

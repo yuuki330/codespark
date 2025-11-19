@@ -3,12 +3,9 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-use tauri::{
-    api::dialog::FileDialogBuilder,
-    async_runtime::oneshot,
-    path::BaseDirectory,
-    AppHandle, Manager,
-};
+use std::sync::mpsc;
+
+use tauri::{api::dialog::FileDialogBuilder, path::BaseDirectory, AppHandle, Manager};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -70,8 +67,8 @@ fn ensure_snippet_store_dir(
 }
 
 #[tauri::command]
-async fn select_data_directory(default_path: Option<String>) -> Result<Option<String>, String> {
-    let (sender, receiver) = oneshot::channel();
+fn select_data_directory(default_path: Option<String>) -> Result<Option<String>, String> {
+    let (sender, receiver) = mpsc::channel();
     let mut builder = FileDialogBuilder::new();
     if let Some(path) = default_path.clone() {
         builder = builder.set_directory(path);
@@ -80,7 +77,7 @@ async fn select_data_directory(default_path: Option<String>) -> Result<Option<St
         let _ = sender.send(folder.map(|picked| picked.to_string_lossy().to_string()));
     });
     receiver
-        .await
+        .recv()
         .map_err(|error| format!("failed to open dialog: {error}"))
 }
 

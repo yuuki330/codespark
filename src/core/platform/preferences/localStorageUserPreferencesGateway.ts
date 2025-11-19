@@ -1,10 +1,7 @@
 import type { UserPreferences, UserPreferencesGateway } from '../../domain/snippet'
+import { createDefaultPreferences } from './defaultPreferences'
 
-const DEFAULT_PREFERENCES: UserPreferences = {
-  defaultLibraryId: null,
-  theme: 'system',
-  globalShortcut: null,
-}
+const DEFAULT_PREFERENCES: UserPreferences = createDefaultPreferences()
 
 type StorageLike = {
   getItem(key: string): string | null
@@ -56,6 +53,9 @@ export class LocalStorageUserPreferencesGateway implements UserPreferencesGatewa
         defaultLibraryId: parsed.defaultLibraryId ?? DEFAULT_PREFERENCES.defaultLibraryId,
         theme: parsed.theme ?? DEFAULT_PREFERENCES.theme,
         globalShortcut: parsed.globalShortcut ?? DEFAULT_PREFERENCES.globalShortcut ?? null,
+        commandPaletteShortcut:
+          parsed.commandPaletteShortcut ?? DEFAULT_PREFERENCES.commandPaletteShortcut ?? null,
+        dataDirectory: parsed.dataDirectory ?? DEFAULT_PREFERENCES.dataDirectory ?? null,
       }
       this.cache = normalized
       return normalized
@@ -69,6 +69,8 @@ export class LocalStorageUserPreferencesGateway implements UserPreferencesGatewa
       defaultLibraryId: preferences.defaultLibraryId ?? null,
       theme: preferences.theme ?? DEFAULT_PREFERENCES.theme,
       globalShortcut: preferences.globalShortcut ?? null,
+      commandPaletteShortcut: preferences.commandPaletteShortcut ?? DEFAULT_PREFERENCES.commandPaletteShortcut ?? null,
+      dataDirectory: preferences.dataDirectory ?? null,
     }
 
     try {

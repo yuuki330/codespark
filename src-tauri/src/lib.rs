@@ -3,7 +3,12 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-use tauri::{path::BaseDirectory, AppHandle, Manager};
+use tauri::{
+    api::dialog::FileDialogBuilder,
+    async_runtime::oneshot,
+    path::BaseDirectory,
+    AppHandle, Manager,
+};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -62,6 +67,21 @@ fn ensure_snippet_store_dir(
     let resolved = resolve_store_path(&app, Path::new(&path), scope)?;
     fs::create_dir_all(&resolved)
         .map_err(|error| format!("failed to create {}: {error}", resolved.display()))
+}
+
+#[tauri::command]
+async fn select_data_directory(default_path: Option<String>) -> Result<Option<String>, String> {
+    let (sender, receiver) = oneshot::channel();
+    let mut builder = FileDialogBuilder::new();
+    if let Some(path) = default_path.clone() {
+        builder = builder.set_directory(path);
+    }
+    builder.pick_folder(move |folder| {
+        let _ = sender.send(folder.map(|picked| picked.to_string_lossy().to_string()));
+    });
+    receiver
+        .await
+        .map_err(|error| format!("failed to open dialog: {error}"))
 }
 
 #[cfg(target_os = "macos")]
@@ -124,6 +144,9 @@ fn resolve_store_path(
     path: &Path,
     scope: Option<String>,
 ) -> Result<PathBuf, String> {
+    if path.is_absolute() {
+        return Ok(path.to_path_buf());
+    }
     let base_directory = scope_to_base_directory(scope);
     app.path()
         .resolve(path, base_directory)
@@ -160,7 +183,8 @@ pub fn run() {
             read_snippet_store,
             write_snippet_store,
             snippet_store_exists,
-            ensure_snippet_store_dir
+            ensure_snippet_store_dir,
+            select_data_directory
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

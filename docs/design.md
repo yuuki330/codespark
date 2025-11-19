@@ -35,14 +35,15 @@ React UI ──▶ UseCases ──▶ Domain ＋ Ports ◀── Data Access / P
 
 ### 2.4 Platform (`src/core/platform/clipboard`)
 - `TauriClipboardGateway`: `copy_snippet_to_clipboard` を呼び出し、OS ごとのネイティブコマンドへ委譲
+- `LocalStorageUserPreferencesGateway` / `FileUserPreferencesGateway`: UI 設定をブラウザでは localStorage に、Tauri では `codespark/preferences.json` へ保存する。後者はスニペットストアと同じ Tauri コマンドを使って JSON を読み書きする
 
 ### 2.5 UI (`src/App.tsx`, `src/components/`)
 - パネル構成: 検索バー / フィルタ / スニペットリスト / 作成フォーム / 編集パネル / 通知
 - キーボード操作: `Enter` でコピー、`↑↓` と `⌘J,K` で移動、`⌘1` で全ライブラリ、`⌘2` 以降で順次切替
 - `SnippetForm` / `SnippetEditor` は共通フォーム値型を利用し、成功/失敗を `NotificationCenter` へ通知
-- `SnippetActionPalette` は Cmd+Enter（Ctrl+Enter）で呼び出され、選択中スニペットに対する編集・削除アクションをキーボード操作で実行できる。アクションは配列定義で拡張可能、Esc でクローズしオーバーレイクリックでも閉じる
+- `SnippetActionPalette` は Cmd/Ctrl+Enter（ユーザー設定可能）で呼び出され、選択中スニペットに対する編集・削除アクションをキーボード操作で実行できる。アクションは配列定義で拡張可能、Esc でクローズしオーバーレイクリックでも閉じる
 - `FilterGroup` / `FilterChip` を用いた `/list` ビューでライブラリ・タグフィルタを表示し、検索ビューではフィルタを非表示にする。スラッシュコマンド `/create` `/list` `/settings` で専用ビューへ遷移し、左上の戻る矢印または ESC で検索ビューへ戻る
-- `SettingsPanel` はショートカットと保存フォルダ編集 UI のプレースホルダを提供し、後続タスクで Preferences 永続化と Tauri ダイアログに接続する前提
+- `SettingsPanel` はショートカット（入力フィールドにフォーカスして任意キーを押下）と保存フォルダ（テキスト入力 + Tauri ダイアログ）を編集する UI を提供し、`preferences` ゲートウェイ経由で JSON ファイルへ保存する
 
 ## 3. データフロー
 1. `App.tsx` 起動時に `InMemorySnippetDataAccessAdapter` を生成し、初期スニペットをロード
@@ -70,6 +71,6 @@ React UI ──▶ UseCases ──▶ Domain ＋ Ports ◀── Data Access / P
 3. Create 時にも ReadOnly ライブラリを防ぐためのガードを導入
 4. ライブラリ別エクスポート / インポート設計と Git 連携案のドキュメント化
 5. macOS / Windows 各 OS でのビルド、コード署名、QA 手順を定義
-6. 設定ビューと Preferences 保存処理（ショートカット記録や保存先変更）の接続、ならびにタグ/フィルタを用いた高度な検索オプションのドキュメント化
+6. ショートカット設定の適用範囲拡大（例: グローバルの検索起動）や保存フォルダ変更時のマイグレーション手順を検討
 
 この設計メモは README / 要件 / タスクと連携し、変更があれば都度更新する。

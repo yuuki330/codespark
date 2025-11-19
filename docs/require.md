@@ -1,38 +1,71 @@
 # 要件整理
 
+## 0. ステータス概要
+| 領域 | 状態 | 備考 |
+| --- | --- | --- |
+| ドメインモデル | ✅ 実装済 | Snippet / Library / Tag / Preferences 型、`constructSnippet`、バリデーション、ReadOnly 例外を `src/core/domain/snippet` に集約。 |
+| CRUD ユースケース | ✅ 実装済 | 検索、空クエリサジェスト、コピー、作成、更新、削除が `src/core/usecases/snippet` に揃い、Vitest テスト付き。 |
+| UI 主要機能 | ✅ 実装済（一部課題あり） | 検索バー、フィルタ、リスト、フォーム、通知、ショートカットを `App.tsx` + `src/components/` で提供。⌘Enter など追加操作は未実装。 |
+| データ永続化 | ⚠️ プロトタイプ | In-memory 実装で動作。Tauri 経由の JSON アダプタは完成済だが UI 未接続。 |
+| ライブラリ＆Preferences 拡張 | ⏳ 未着手 | `GetAllLibrariesUseCase` `SwitchActiveLibraryUseCase`、UserPreferences の保存・読込などは今後対応。 |
+| ドキュメント | ✅ 更新済 | README / 設計 / タスクに最新状況を反映。 |
+
 ## 1. 背景とスコープ
-CodeSpark はローカルに保存したコードスニペットを高速検索・コピーできるランチャーであり、キーボード中心の操作体験を最優先とする。ドキュメントでは実装技術に依存しないドメイン要件を定義し、将来的な Git 連携やチーム共有を見据える。
+CodeSpark はローカルに保存したスニペットを高速検索・コピーできるランチャーであり、キーボード中心の操作体験を最優先とする。macOS / Windows を対象とし、Linux はベストエフォートでサポートする。ドキュメントは実装技術に依存しない形で要件を整理しつつ、現状の達成度を明示する。
 
 ## 2. エンティティ要件
-- **Snippet**: `id`, `title`, `body` は必須。`tags` は重複禁止、`language` や `description` は任意。`isFavorite`, `usageCount`, `lastUsedAt` を保持して利用頻度を追跡し、`shortcut` で個別キーワード検索を実現する。`updatedAt >= createdAt` を満たすこと。
-- **Tag**: 文字列として取り扱い、必要に応じて `id`, `color`, `kind` を持つ独立エンティティへ昇格可能。
-- **LibraryCategory**: `"PERSONAL" | "TEAM" | "PROJECT"` を想定し、利用コンテキストのみで分類する（保存場所は区別しない）。MVP の UI スコープは `PERSONAL` と `TEAM` の 2 種類に限定する。
-- **SnippetLibrary**: `id`, `name`, `description`, `isReadOnly`, `category` を持つ論理コンテナ。Snippet は `libraryId` を保持し、カテゴリに応じたスコープ切替を可能にする。
-- **UserPreferences（拡張枠）**: デフォルトライブラリやテーマ、グローバルショートカットを格納し、体験を個別最適化する。
+### 2.1 Snippet（✅ 実装済）
+- 定義: `src/core/domain/snippet/entities/index.ts`
+- 必須フィールド: `id`, `title`, `body`, `libraryId`, `createdAt`, `updatedAt`
+- 任意フィールド: `shortcut`, `description`, `tags`, `language`, `isFavorite`, `usageCount`, `lastUsedAt`
+- バリデーション: `constructSnippet` が `title/body` 非空、タグ重複禁止、`updatedAt >= createdAt` を検証
+
+### 2.2 Tag（✅ 実装済）
+- 文字列エイリアス `TagName` として管理。タグ重複チェックは `constructSnippet` で実施。
+
+### 2.3 LibraryCategory / SnippetLibrary（✅ 実装済）
+- `LibraryCategory = "PERSONAL" | "TEAM" | "PROJECT"`
+- `SnippetLibrary` には `isReadOnly` を含み、Team ライブラリを保護
+- In-memory / File アダプタの既定ライブラリとして Personal/Team を定義
+
+### 2.4 UserPreferences（ⓘ 型のみ）
+- `defaultLibraryId`, `theme`, `globalShortcut` を保持する型を定義済
+- 具体的な保存・読込処理や UI 連携は未着手
 
 ## 3. ユースケース要件
-1. **UC-01 検索してコピー**: キーワード入力→スコアリング→ハイライト→コピー→`usageCount` 更新。コピー時はほぼ1アクションで完結させる。
-2. **UC-02 新規登録**: 入力値を検証して `SnippetDataAccessAdapter.save`。タイトル/本文必須、タグ重複排除。
-3. **UC-03 編集**: `getById` 取得→差分マージ→`updatedAt` 更新→保存。
-4. **UC-04 削除**: `delete` 実行後にキャッシュ・UI を同期。
-5. **UC-05 絞り込み**: タグ、ライブラリ、キーワード条件で集合をフィルタ。検索ロジックと統合可能。
-6. **UC-06 最近使った表示**: `usageCount`・`lastUsedAt` を使い上位 N 件を返す。
-7. **UC-07 ライブラリ切り替え/管理**: 取得・追加・切替のフックを用意し、Personal/Team 切替 UI に繋げる。
-8. **補助 UC**: `CopySnippetUseCase` で使用履歴を更新、`GetTopSnippetsForEmptyQueryUseCase` で空クエリ時候補を返す。
+| UC | 状態 | 実装/備考 |
+| --- | --- | --- |
+| UC-01 検索してコピー | ✅ | `SearchSnippetsUseCase` + `CopySnippetUseCase`。ショートカット完全一致・前方一致・タグ・本文・お気に入り・Usage/Recency 正規化でスコアリング。Vitest カバレッジあり。 |
+| UC-02 新規登録 | ✅ | `CreateSnippetUseCase`。`constructSnippet` でバリデーションの後、Gateway に保存。 |
+| UC-03 編集 | ✅ | `UpdateSnippetUseCase`。ReadOnly ライブラリ判定、`applySnippetUpdate` により差分反映。 |
+| UC-04 削除 | ✅ | `DeleteSnippetUseCase`。ライブラリ保護を通過した場合のみ削除。 |
+| UC-05 絞り込み | ✅ | ライブラリ / タグ条件を `filterSnippetsByConditions` で処理し、UI のフィルタと同期。 |
+| UC-06 最近使った表示 | ✅ | `GetTopSnippetsForEmptyQueryUseCase` が空クエリ時の候補を返却。 |
+| UC-07 ライブラリ切替/管理 | ⏳ | UIから `FilterChip` 経由で切替できるが、`GetAllLibrariesUseCase` / `SwitchActiveLibraryUseCase` は未実装。Preferences 連携も未着手。 |
+| 補助 UC（Copy 時の履歴更新など） | ✅ | Copy ユースケースが `usageCount` / `lastUsedAt` を更新。 |
 
-## 4. ライブラリ運用に関する要件
-- `Personal` は雑多なメモや検証用スペース、`Team` は共有可能な高品質スニペットの保管場所として切り分ける。
-- ライブラリ切替 UI で `All/Personal/Team` を素早く変更できる（ショートカット `⌘1`〜`⌘3` 等）。
-- `Team` ライブラリはオンボーディングパックとして配布可能で、新人は Team 範囲のみ検索してキャッチアップする。
-- MVP 実装は `Personal` / `Team` の 2 つのライブラリスコープのみを提供し、その他のカテゴリは設定 UI が整い次第徐々に解放する（データモデル上は先に用意しておく）。
+## 4. ライブラリ運用要件
+- Personal: ローカル書き込み可能。既定ライブラリ
+- Team: 既定で ReadOnly。`Update/Delete` はブロック。Create 時のバリデーションは今後追加予定
+- UI では `All/Personal/Team` をワンクリック + `⌘1`〜`⌘3` で切替
 
-## 5. Raycast ライクな体験要件
-- `SearchSnippetsUseCase` で shortcut 完全一致、タイトル前方一致、タグ/本文一致の順にスコアを付け、`isFavorite` と使用履歴にボーナスを与える。
-- アプリ起動時に検索バーへフォーカスし、空クエリではお気に入り＋最近利用を提示する。
-- `Enter` キーでトップ候補をコピーでき、`↓/↑` で選択移動、`⌘Enter` など追加アクションの余地を残す。
+## 5. Raycast ライクな体験要件（実装状況）
+- 起動時フォーカス: ✅ `SearchInput` へ `useEffect` でフォーカス
+- サジェスト: ✅ 空クエリ時にお気に入り + 最近利用を提示
+- キーボード操作: ✅ `Enter` でコピー、`↑↓` / `⌘J,K` で選択移動。`⌘Enter` 追加アクションは未実装
+- 拡張アクション: ⏳ トーストやショートカットの追加分は今後検討
 
 ## 6. システム前提と検討事項
-- macOS と Windows の両 OS に対して同一機能を提供することを最優先とし、Linux は可能な範囲でサポートする。
-- 当面は単一ユーザー、保存先はローカルファイルまたはローカル DB を想定。
-- クリップボードコピー以外の高度な操作（エディタ貼り付け、コマンド実行）は今後検討。
-- プレースホルダ付きテンプレ、ショートカット割り当て、共有範囲、ライブラリの ReadOnly ルールなどは将来の拡張候補として記録し、必要時にドメインへ編入する。
+- macOS / Windows 向けビルド（`npm run tauri build`）は動作確認中。配布・署名手順は未ドキュメント
+- 保存先: 現在は In-memory。Tauri 経由の JSON ストア（`FileSnippetDataAccessAdapter` + `read/write_snippet_store`）を利用する準備は完了済
+- クリップボード: `copy_snippet_to_clipboard` コマンドで OS コマンドへ委譲。権限は `src-tauri/permissions/clipboard.json`
+- 将来機能: テンプレートのプレースホルダ、ショートカット割り当て、共有設定などは要件のみ保持し未実装
+
+## 7. 今後のフォローアップ
+1. File アダプタの UI 統合とストアマイグレーション仕様
+2. Preferences / ライブラリ切替ユースケースの設計
+3. エクスポート / インポート、Git 連携の設計メモ化
+4. macOS / Windows ビルド手順 + QA チェックリスト策定
+5. 追加ショートカットや UI テストの整備
+
+最新のタスク進捗は `docs/tasks.md` を参照。優先度 P0 から順に着手する。

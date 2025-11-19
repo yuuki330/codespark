@@ -1,26 +1,26 @@
 # タスクリスト
 
 ## ドメイン層
-- [ ] [P0] `src/core/domain/snippet/` を作成し、エンティティ・値オブジェクト・ユーティリティを集約するインデックスファイルを置く。
-- [ ] [P0] `Snippet` 型を docs/design.md の定義どおり実装し、`shortcut` / `usageCount` / `lastUsedAt` など UI 要件をすべて含める。
-- [ ] [P1] `SnippetId` / `LibraryId` / `TagName` の型エイリアスを整理し、ユースケース側からインポートしやすくする。
-- [ ] [P0] `constructSnippet` 関数を用意し、`title` / `body` 非空、`tags` 重複禁止、`updatedAt >= createdAt` などドメインルールをバリデーションする。
+- [x] [P0] `src/core/domain/snippet/` を作成し、エンティティ・値オブジェクト・ユーティリティを集約するインデックスファイルを置く。
+- [x] [P0] `Snippet` 型を docs/design.md の定義どおり実装し、`shortcut` / `usageCount` / `lastUsedAt` など UI 要件をすべて含める。
+- [x] [P1] `SnippetId` / `LibraryId` / `TagName` の型エイリアスを整理し、ユースケース側からインポートしやすくする。
+- [x] [P0] `constructSnippet` 関数を用意し、`title` / `body` 非空、`tags` 重複禁止、`updatedAt >= createdAt` などドメインルールをバリデーションする。
 - [x] [P0] `applySnippetUpdate` 関数を実装し、partial 更新値を受けて差分マージと再バリデーションを行う。
-- [ ] [P1] バリデーションエラーや ReadOnly ライブラリ違反を表すドメイン専用エラー型を定義する。
-- [ ] [P1] `SnippetLibrary` と `LibraryCategory` 型を実装し、`isReadOnly` や `category` を含む構造にする。
-- [ ] [P2] `UserPreferences`（拡張枠）の型を定義し、`defaultLibraryId` や `theme` など将来的に参照するフィールドを用意する。
+- [x] [P1] バリデーションエラーや ReadOnly ライブラリ違反を表すドメイン専用エラー型を定義する。
+- [x] [P1] `SnippetLibrary` と `LibraryCategory` 型を実装し、`isReadOnly` や `category` を含む構造にする。
+- [x] [P2] `UserPreferences`（拡張枠）の型を定義し、`defaultLibraryId` や `theme` など将来的に参照するフィールドを用意する（永続化は未実装）。
 
 ## データアクセスアダプタ層
-- [ ] [P0] `SnippetDataAccessAdapter` インターフェースを `getAll` / `getById` / `save` / `delete` で定義し、ドメイン型のみを参照するようにする。
-- [ ] [P1] `SnippetLibraryDataAccessAdapter`（または同等の取得 API）を定義し、Personal/Team のライブラリメタデータを取得できるようにする。
-- [ ] [P0] JSON ベース永続化を前提にした `FileSnippetDataAccessAdapter` の骨組みを作る（読み書き・ID 生成・日時シリアライズ方針を含める）。
-- [ ] [P1] Team ライブラリを `isReadOnly` として扱い、書き込み系 API で保護する仕組みを実装する。
+- [x] [P0] `SnippetDataAccessAdapter` インターフェースを `getAll` / `getById` / `save` / `delete` で定義し、ドメイン型のみを参照するようにする。
+- [x] [P1] `SnippetLibraryDataAccessAdapter`（または同等の取得 API）を定義し、Personal/Team のライブラリメタデータを取得できるようにする。
+- [x] [P0] JSON ベース永続化を前提にした `FileSnippetDataAccessAdapter` の骨組みを作る（読み書き・ID 生成・日時シリアライズ方針を含める）。
+- [x] [P1] Team ライブラリを `isReadOnly` として扱い、書き込み系 API で保護する仕組みを実装する。
 - [ ] [P2] 将来の Git / Remote 接続を見据えて、DI で差し替え可能なファクトリ関数を設計する。
-- [ ] [P1] ストレージのファイルレイアウト（保存先パス、JSON スキーマ）を docs/ かコメントで説明し、移行時の参考にする。
+- [ ] [P1] ストレージのファイルレイアウト（保存先パス、JSON スキーマ）を docs/ かコメントで説明し、移行時の参考にする（現状 README/設計に概要のみ記載）。
 
 ## ユースケース
-- [ ] [P0] `SearchSnippetsUseCase` を実装し、クエリ・ライブラリ・タグ条件を受け、デザイン記載のスコアリングルールを網羅する。
-- [ ] [P1] `GetTopSnippetsForEmptyQueryUseCase` を作成し、空クエリ時にお気に入り＋最近利用スニペットを返す処理を切り出す。
+- [x] [P0] `SearchSnippetsUseCase` を実装し、クエリ・ライブラリ・タグ条件を受け、デザイン記載のスコアリングルールを網羅する。
+- [x] [P1] `GetTopSnippetsForEmptyQueryUseCase` を作成し、空クエリ時にお気に入り＋最近利用スニペットを返す処理を切り出す。
 - [x] [P0] `CopySnippetUseCase` を実装し、Snippet 取得→Tauri クリップボードコマンド呼び出し→`usageCount`/`lastUsedAt` 更新→保存までを直列化する。
 - [x] [P0] `CreateSnippetUseCase` を実装し、入力 DTO→`constructSnippet`→保存→結果返却のフローを整備する。
 - [x] [P0] `UpdateSnippetUseCase` で差分マージと `updatedAt` 更新、ReadOnly ライブラリチェックを行う（`applySnippetUpdate` を利用）。
@@ -29,37 +29,37 @@
 - [ ] [P1] `SwitchActiveLibraryUseCase` を実装し、選択状態を Preferences に保存し、検索条件への反映をハンドリングする。
 
 ## UI / プレゼンテーション
-- [ ] [P1] `src/components/` を新設し、検索バー・スニペットリスト・ライブラリ切替・トーストコンポーネントを分離する。
-- [ ] [P0] `App.tsx` から検索・コピーのロジックをユースケース呼び出しに置き換え、フックで依存を注入する。
-- [ ] [P1] アプリ起動時に検索バーへ自動フォーカスする処理を追加する。
-- [ ] [P1] スニペット一覧で `Enter` コピー、`↑/↓` 選択移動、`⌘Enter` 追加アクションを実装する。
-- [ ] [P1] ライブラリ切替 UI（All/Personal/Team のボタンまたはショートカット `⌘1`〜`⌘3`）を追加し、`SwitchActiveLibraryUseCase` と連動させる。
-- [ ] [P1] 空クエリ時にお気に入り＋最近使用スニペットを表示するコンポーネントを実装し、検索結果との切り替えを滑らかにする。
-- [ ] [P1] コピー失敗や ReadOnly 書き込みエラーをユーザーへ通知する UI（トースト/バナー）を用意する。
-- [ ] [P2] タグフィルタやライブラリフィルタを組み合わせられるコントロールを設置する。
+- [x] [P1] `src/components/` を新設し、検索バー・スニペットリスト・ライブラリ切替・トーストコンポーネントを分離する。
+- [x] [P0] `App.tsx` から検索・コピーのロジックをユースケース呼び出しに置き換え、フックで依存を注入する。
+- [x] [P1] アプリ起動時に検索バーへ自動フォーカスする処理を追加する。
+- [ ] [P1] スニペット一覧で `Enter` コピー、`↑/↓` 選択移動、`⌘Enter` 追加アクションを実装する（`Enter`/`↑↓`/`⌘J,K` は実装済、`⌘Enter` は未対応）。
+- [ ] [P1] ライブラリ切替 UI（All/Personal/Team のボタンまたはショートカット `⌘1`〜`⌘3`）を追加し、`SwitchActiveLibraryUseCase` と連動させる（UI のみ仮実装中）。
+- [x] [P1] 空クエリ時にお気に入り＋最近使用スニペットを表示するコンポーネントを実装し、検索結果との切り替えを滑らかにする。
+- [x] [P1] コピー失敗や ReadOnly 書き込みエラーをユーザーへ通知する UI（トースト/バナー）を用意する。
+- [ ] [P2] タグフィルタやライブラリフィルタを組み合わせられるコントロールを設置する（現状はタグの AND 条件のみ）。
 
 ## Tauri / ネイティブ連携
-- [ ] [P0] `src-tauri/src/main.rs` にクリップボードコピーコマンドを実装し、JS 側から `invoke` で呼び出せるようにする。
-- [ ] [P0] JSON/SQLite ストレージにアクセスする Tauri コマンドを実装し、`SnippetDataAccessAdapter` が透過的に利用できるようブリッジする。
-- [ ] [P1] `src-tauri/capabilities/*.json` を更新し、クリップボード・ファイルアクセスなど必要最小限の権限に絞る。
-- [ ] [P1] `tauri.conf.json` の allowlist やバンドル設定を更新し、追加コマンドを登録する。
+- [x] [P0] `src-tauri/src/main.rs` にクリップボードコピーコマンドを実装し、JS 側から `invoke` で呼び出せるようにする。
+- [x] [P0] JSON/SQLite ストレージにアクセスする Tauri コマンドを実装し、`SnippetDataAccessAdapter` が透過的に利用できるようブリッジする（現状は JSON のみ）。
+- [x] [P1] `src-tauri/capabilities/*.json` を更新し、クリップボード・ファイルアクセスなど必要最小限の権限に絞る。
+- [x] [P1] `tauri.conf.json` の allowlist やバンドル設定を更新し、追加コマンドを登録する。
 - [ ] [P0] macOS と Windows 向けのビルド手順を整備し、両 OS で同一バイナリ機能を検証する（Linux はベストエフォートで確認）。
 
 ## データ永続化と同期
-- [ ] [P0] Personal/Team を同一ストレージ内で管理し、`libraryId` フィルタリングと `isReadOnly` フラグをデータアクセスアダプタ経由で提供する。
+- [x] [P0] Personal/Team を同一ストレージ内で管理し、`libraryId` フィルタリングと `isReadOnly` フラグをデータアクセスアダプタ経由で提供する。
 - [ ] [P2] ライブラリ別エクスポート/インポート関数の設計メモを残し、オンボーディングパック化の足掛かりにする。
 - [ ] [P2] 将来の Git 連携やリモート同期を見据えたアダプタ追加手順（DI への登録方法、設定フラグ）を文書化する。
 
 ## テスト
-- [ ] [P0] Vitest + React Testing Library を導入し、`App.test.tsx` で基本 UI 挙動（検索・コピー・エラー表示）を確認する。
-- [ ] [P0] `SearchSnippetsUseCase` のスコアリングをユニットテストで網羅し、shortcut 完全一致やタグ一致など主要パターンを検証する。
+- [x] [P0] Vitest + React Testing Library を導入し、`App.test.tsx` で基本 UI 挙動（検索・コピー・エラー表示）を確認する。
+- [x] [P0] `SearchSnippetsUseCase` のスコアリングをユニットテストで網羅し、shortcut 完全一致やタグ一致など主要パターンを検証する。
 - [x] [P1] `CopySnippetUseCase` の `usageCount`/`lastUsedAt` 更新ロジックとクリップボード失敗ハンドリングをテストする。
-- [ ] [P1] ReadOnly ライブラリへの書き込み禁止が `Create/Update/Delete` ユースケースで正しく動作するかテストする。
+- [ ] [P1] ReadOnly ライブラリへの書き込み禁止が `Create/Update/Delete` ユースケースで正しく動作するかテストする（Update/Delete は実装済、Create も保護するテスト/実装が未完）。
 - [ ] [P2] `GetTopSnippetsForEmptyQueryUseCase` がお気に入り＋最近使用の優先順を保証するテストを追加する。
 - [ ] [P1] `src-tauri/src/lib.rs` などに単体テストを書き、ファイルアクセスコマンドや JSON パーサの基本ケースを検証する。
 
 ## ドキュメント
-- [ ] [P1] README にアーキテクチャレイヤ、ユースケース一覧、テスト実行コマンド (`npm run test`, `cargo test`) を追記する。
-- [ ] [P2] docs/design.md を更新し、実装差分（データアクセスアダプタや UI 構成）が変わった際に反映するルールを決める。
-- [ ] [P2] ストレージスキーマやライブラリ運用ルールの詳細ノートを docs/ に追加し、メンテナンス手順を共有する。
+- [x] [P1] README にアーキテクチャレイヤ、ユースケース一覧、テスト実行コマンド (`npm run test`, `cargo test`) を追記する。
+- [x] [P2] docs/design.md を更新し、実装差分（データアクセスアダプタや UI 構成）が変わった際に反映するルールを決める。
+- [x] [P2] ストレージスキーマやライブラリ運用ルールの詳細ノートを docs/ に追加し、メンテナンス手順を共有する（require/design に反映済）。
 - [ ] [P2] ライブラリ切替ショートカットや検索 UX を図解した資料（もしくは GIF 作成手順）を準備して、PR 時に添付できるようにする。

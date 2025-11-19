@@ -33,6 +33,9 @@ import {
   SnippetEditor,
   SnippetActionPalette,
   type SnippetActionPaletteItem,
+  FilterChip,
+  FilterGroup,
+  SettingsPanel,
 } from './components'
 
 import './App.css'
@@ -127,7 +130,20 @@ const generateSnippetId = () => {
 
 type SnippetGateway = SnippetDataAccessAdapter & SnippetLibraryDataAccessAdapter
 
-type ViewMode = 'search' | 'create' | 'edit'
+type ViewMode = 'search' | 'create' | 'edit' | 'list' | 'settings'
+
+const SLASH_COMMAND_VIEW_MAP: Record<string, ViewMode> = {
+  '/create': 'create',
+  '/list': 'list',
+  '/settings': 'settings',
+}
+
+const VIEW_LABELS: Record<Exclude<ViewMode, 'search'>, string> = {
+  create: 'スニペットを追加',
+  edit: 'スニペットを編集',
+  list: 'スニペットを一覧表示',
+  settings: '設定',
+}
 
 const App: React.FC = () => {
   const [storageMode] = useState<'memory' | 'file'>(() =>
@@ -143,6 +159,8 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('search')
   const [actionSnippet, setActionSnippet] = useState<Snippet | null>(null)
+  const [availableTags, setAvailableTags] = useState<string[]>([])
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const searchInputRef = useRef<SearchInputHandle | null>(null)
   const snippetGatewayRef = useRef<SnippetGateway>(
     storageMode === 'memory'
@@ -152,6 +170,15 @@ const App: React.FC = () => {
   const preferencesGatewayRef = useRef<UserPreferencesGateway>(new LocalStorageUserPreferencesGateway())
   const clipboardGatewayRef = useRef(new TauriClipboardGateway())
   const selectedLibraryIdsRef = useRef<LibraryId[]>([])
+
+  const updateAvailableTags = useCallback(async (snippets?: Snippet[]) => {
+    const source = snippets ?? (await snippetGatewayRef.current.getAll())
+    const tagSet = new Set<string>()
+    source.forEach(snippet => {
+      snippet.tags.forEach(tag => tagSet.add(tag))
+    })
+    setAvailableTags(Array.from(tagSet).sort((a, b) => a.localeCompare(b, 'ja')))
+  }, [])
 
   const copySnippetUseCase = useMemo(
     () =>
@@ -230,20 +257,18 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadSnippets = async () => {
       const gateway = snippetGatewayRef.current
-      if (storageMode === 'file') {
-        const existing = await gateway.getAll()
-        if (existing.length === 0) {
-          await seedInitialSnippets(gateway, initialSnippets)
-        }
-      } else {
-        await gateway.getAll()
+      let existing = await gateway.getAll()
+      if (storageMode === 'file' && existing.length === 0) {
+        await seedInitialSnippets(gateway, initialSnippets)
+        existing = await gateway.getAll()
       }
+      await updateAvailableTags(existing)
     }
 
     loadSnippets().catch(error => {
       console.error('failed to load snippets', error)
     })
-  }, [storageMode])
+  }, [storageMode, updateAvailableTags])
 
   useEffect(() => {
     let cancelled = false
@@ -286,11 +311,13 @@ const App: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false
+    const tagsFilter = viewMode === 'list' ? selectedTags : []
 
     searchSnippetsUseCase
       .execute({
         query,
         libraryIds: selectedLibraryIds,
+        tags: tagsFilter,
       })
       .then(results => {
         if (cancelled) return
@@ -306,7 +333,7 @@ const App: React.FC = () => {
     return () => {
       cancelled = true
     }
-  }, [query, selectedLibraryIds, searchSnippetsUseCase, dataVersion])
+  }, [query, selectedLibraryIds, selectedTags, viewMode, searchSnippetsUseCase, dataVersion])
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -328,9 +355,9 @@ const App: React.FC = () => {
   const isActionPaletteOpen = Boolean(actionSnippet)
 
   const refreshSnippets = useCallback(async () => {
-    await snippetGatewayRef.current.getAll()
+    await updateAvailableTags()
     setDataVersion(version => version + 1)
-  }, [])
+  }, [updateAvailableTags])
 
   const handleCopySnippet = useCallback(
     async (snippet: Snippet) => {
@@ -370,6 +397,28 @@ const App: React.FC = () => {
     void applyLibrarySelection([])
   }, [applyLibrarySelection])
 
+  const handleSelectLibraryChip = useCallback(
+    (libraryId: LibraryId) => {
+      const isActive = selectedLibraryIds.length === 1 && selectedLibraryIds[0] === libraryId
+      if (isActive) {
+        void applyLibrarySelection([])
+        return
+      }
+      void applyLibrarySelection([libraryId])
+    },
+    [applyLibrarySelection, selectedLibraryIds]
+  )
+
+  const handleToggleTag = useCallback((tag: string) => {
+    setSelectedTags(current =>
+      current.includes(tag) ? current.filter(existing => existing !== tag) : [...current, tag]
+    )
+  }, [])
+
+  const handleClearTagFilters = useCallback(() => {
+    setSelectedTags([])
+  }, [])
+
   useEffect(() => {
     setSelectedIndex(current => {
       if (filteredCount === 0) return 0
@@ -379,7 +428,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     setSelectedIndex(0)
-  }, [query, selectedLibraryIds])
+  }, [query, selectedLibraryIds, selectedTags, viewMode])
 
   const exitToSearch = useCallback(() => {
     setViewMode('search')
@@ -470,8 +519,9 @@ const App: React.FC = () => {
     (value: string) => {
       setQuery(value)
       const trimmed = value.trim().toLowerCase()
-      if (trimmed === '/create') {
-        setViewMode('create')
+      const targetView = SLASH_COMMAND_VIEW_MAP[trimmed]
+      if (targetView) {
+        setViewMode(targetView)
         setQuery('')
       }
     },
@@ -590,7 +640,7 @@ const App: React.FC = () => {
 
   const isSecondaryView = viewMode !== 'search'
   const containerClass = viewMode === 'search' ? 'command-surface' : 'command-surface command-surface--panel'
-  const viewLabel = viewMode === 'create' ? 'スニペットを追加' : 'スニペットを編集'
+  const viewLabel = viewMode === 'search' ? '' : VIEW_LABELS[viewMode]
 
   return (
     <>
@@ -611,7 +661,7 @@ const App: React.FC = () => {
                 ref={searchInputRef}
                 value={query}
                 onChange={handleSearchInputChange}
-                placeholder='スニペットを検索 / /create'
+                placeholder='スニペットを検索 / /create / /list / /settings'
               />
 
               <div className='snippet-panel'>
@@ -648,6 +698,63 @@ const App: React.FC = () => {
                 onSubmit={handleUpdateSnippet}
                 onDelete={handleDeleteSnippet}
               />
+            </div>
+          ) : null}
+
+          {viewMode === 'list' ? (
+            <div className='command-body command-body--list'>
+              <div className='filter-toolbar'>
+                <FilterGroup label='ライブラリ'>
+                  <div className='filter-group__chips'>
+                    <FilterChip active={selectedLibraryIds.length === 0} onClick={handleSelectAllLibraries}>
+                      すべて
+                    </FilterChip>
+                    {libraries.map(library => (
+                      <FilterChip
+                        key={library.id}
+                        active={selectedLibraryIds.includes(library.id)}
+                        onClick={() => handleSelectLibraryChip(library.id)}
+                      >
+                        {library.name}
+                      </FilterChip>
+                    ))}
+                  </div>
+                </FilterGroup>
+
+                <FilterGroup label='タグ'>
+                  {availableTags.length === 0 ? (
+                    <span className='filter-group__empty'>タグが登録されていません</span>
+                  ) : (
+                    <div className='filter-group__chips'>
+                      <FilterChip active={selectedTags.length === 0} onClick={handleClearTagFilters}>
+                        すべて
+                      </FilterChip>
+                      {availableTags.map(tag => (
+                        <FilterChip key={tag} active={selectedTags.includes(tag)} onClick={() => handleToggleTag(tag)}>
+                          {tag}
+                        </FilterChip>
+                      ))}
+                    </div>
+                  )}
+                </FilterGroup>
+              </div>
+              <div className='snippet-panel snippet-panel--list'>
+                <SnippetList
+                  snippets={filteredSnippets}
+                  selectedSnippetId={selectedSnippet?.id ?? null}
+                  copiedSnippetId={copiedSnippetId}
+                  onSelect={handleCopySnippet}
+                  onHover={index => setSelectedIndex(index)}
+                  mode='search'
+                  emptyMessage='一致するスニペットがありません'
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {viewMode === 'settings' ? (
+            <div className='command-body'>
+              <SettingsPanel />
             </div>
           ) : null}
         </div>

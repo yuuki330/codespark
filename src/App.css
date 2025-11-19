@@ -330,6 +330,27 @@ body {
   color: var(--primary-muted);
 }
 
+.settings-panel__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.settings-panel__actions button {
+  border-radius: 999px;
+  border: 1px solid var(--surface-border);
+  background: transparent;
+  color: inherit;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.settings-panel__actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .settings-panel__folder {
   display: flex;
   flex-direction: column;

@@ -3,7 +3,10 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-use tauri::{path::BaseDirectory, AppHandle, Manager};
+use std::sync::mpsc;
+
+use tauri::{path::BaseDirectory, AppHandle, Manager, Wry};
+use tauri_plugin_dialog::DialogExt;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -62,6 +65,20 @@ fn ensure_snippet_store_dir(
     let resolved = resolve_store_path(&app, Path::new(&path), scope)?;
     fs::create_dir_all(&resolved)
         .map_err(|error| format!("failed to create {}: {error}", resolved.display()))
+}
+
+#[tauri::command]
+fn select_data_directory(app: AppHandle<Wry>, default_path: Option<String>) -> Result<Option<String>, String> {
+    let (sender, receiver) = mpsc::channel();
+    app.dialog()
+        .file()
+        .set_directory(default_path.unwrap_or_default())
+        .pick_folder(move |folder| {
+            let _ = sender.send(folder.map(|picked| picked.to_string()));
+        });
+    receiver
+        .recv()
+        .map_err(|error| format!("failed to open dialog: {error}"))
 }
 
 #[cfg(target_os = "macos")]
@@ -124,6 +141,9 @@ fn resolve_store_path(
     path: &Path,
     scope: Option<String>,
 ) -> Result<PathBuf, String> {
+    if path.is_absolute() {
+        return Ok(path.to_path_buf());
+    }
     let base_directory = scope_to_base_directory(scope);
     app.path()
         .resolve(path, base_directory)
@@ -154,13 +174,15 @@ fn scope_to_base_directory(scope: Option<String>) -> BaseDirectory {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             greet,
             copy_snippet_to_clipboard,
             read_snippet_store,
             write_snippet_store,
             snippet_store_exists,
-            ensure_snippet_store_dir
+            ensure_snippet_store_dir,
+            select_data_directory
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

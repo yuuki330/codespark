@@ -39,4 +39,6 @@ export type UserPreferences = {
   defaultLibraryId: LibraryId | null
   theme: ThemePreference
   globalShortcut?: string | null
+  commandPaletteShortcut?: string | null
+  dataDirectory?: string | null
 }

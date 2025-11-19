@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { invoke as invokeTauriCommand } from '@tauri-apps/api/core'
 
 import type {
   LibraryId,
@@ -7,9 +8,15 @@ import type {
   SnippetLibrary,
   SnippetLibraryDataAccessAdapter,
   UserPreferencesGateway,
+  UserPreferences,
 } from './core/domain/snippet'
 import { FileSnippetDataAccessAdapter, InMemorySnippetDataAccessAdapter } from './core/data-access/snippet'
-import { LocalStorageUserPreferencesGateway, TauriClipboardGateway } from './core/platform'
+import {
+  FileUserPreferencesGateway,
+  LocalStorageUserPreferencesGateway,
+  TauriClipboardGateway,
+  createDefaultPreferences,
+} from './core/platform'
 import type { SnippetId } from './core/domain/snippet'
 import {
   CopySnippetUseCase,
@@ -39,6 +46,7 @@ import {
 } from './components'
 
 import './App.css'
+import { eventMatchesShortcut } from './utils/shortcut'
 
 const createSeedDate = (offsetDays: number) => {
   const base = new Date(Date.UTC(2024, 0, 1, 0, 0, 0))
@@ -119,6 +127,8 @@ const initialSnippets: Snippet[] = [
 
 const highlightTimeoutMs = 180
 const notificationDurationMs = 4000
+const DEFAULT_SNIPPET_FILE_PATH = 'codespark/snippets.json'
+const DEFAULT_PREFERENCES: UserPreferences = createDefaultPreferences()
 
 const generateSnippetId = () => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -161,15 +171,24 @@ const App: React.FC = () => {
   const [actionSnippet, setActionSnippet] = useState<Snippet | null>(null)
   const [availableTags, setAvailableTags] = useState<string[]>([])
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [userPreferences, setUserPreferences] = useState<UserPreferences>(DEFAULT_PREFERENCES)
+  const [isSelectingDirectory, setIsSelectingDirectory] = useState(false)
+  const [useCaseVersion, setUseCaseVersion] = useState(0)
   const searchInputRef = useRef<SearchInputHandle | null>(null)
   const snippetGatewayRef = useRef<SnippetGateway>(
     storageMode === 'memory'
       ? new InMemorySnippetDataAccessAdapter(initialSnippets)
       : new FileSnippetDataAccessAdapter()
   )
-  const preferencesGatewayRef = useRef<UserPreferencesGateway>(new LocalStorageUserPreferencesGateway())
+  const preferencesGatewayRef = useRef<UserPreferencesGateway>(
+    storageMode === 'file'
+      ? new FileUserPreferencesGateway()
+      : new LocalStorageUserPreferencesGateway()
+  )
   const clipboardGatewayRef = useRef(new TauriClipboardGateway())
   const selectedLibraryIdsRef = useRef<LibraryId[]>([])
+  const dataDirectoryRef = useRef<string | null>(null)
+  const isNativeDialogAvailable = isTauriRuntime()
 
   const updateAvailableTags = useCallback(async (snippets?: Snippet[]) => {
     const source = snippets ?? (await snippetGatewayRef.current.getAll())
@@ -186,11 +205,11 @@ const App: React.FC = () => {
         snippetGateway: snippetGatewayRef.current,
         clipboardGateway: clipboardGatewayRef.current,
       }),
-    []
+    [useCaseVersion]
   )
   const getTopSnippetsUseCase = useMemo(
     () => new GetTopSnippetsForEmptyQueryUseCase({ snippetGateway: snippetGatewayRef.current }),
-    []
+    [useCaseVersion]
   )
   const createSnippetUseCase = useMemo(
     () =>
@@ -198,7 +217,7 @@ const App: React.FC = () => {
         snippetGateway: snippetGatewayRef.current,
         generateId: generateSnippetId,
       }),
-    []
+    [useCaseVersion]
   )
   const searchSnippetsUseCase = useMemo(
     () =>
@@ -211,7 +230,7 @@ const App: React.FC = () => {
             limit: params.limit,
           }),
       }),
-    [getTopSnippetsUseCase]
+    [getTopSnippetsUseCase, useCaseVersion]
   )
   const updateSnippetUseCase = useMemo(
     () =>
@@ -219,7 +238,7 @@ const App: React.FC = () => {
         snippetGateway: snippetGatewayRef.current,
         libraryGateway: snippetGatewayRef.current,
       }),
-    []
+    [useCaseVersion]
   )
   const deleteSnippetUseCase = useMemo(
     () =>
@@ -227,11 +246,11 @@ const App: React.FC = () => {
         snippetGateway: snippetGatewayRef.current,
         libraryGateway: snippetGatewayRef.current,
       }),
-    []
+    [useCaseVersion]
   )
   const getLibrariesUseCase = useMemo(
     () => new GetLibrariesUseCase({ libraryGateway: snippetGatewayRef.current }),
-    []
+    [useCaseVersion]
   )
   const getActiveLibraryUseCase = useMemo(
     () => new GetActiveLibraryUseCase({ preferencesGateway: preferencesGatewayRef.current }),
@@ -243,7 +262,7 @@ const App: React.FC = () => {
         libraryGateway: snippetGatewayRef.current,
         preferencesGateway: preferencesGatewayRef.current,
       }),
-    []
+    [useCaseVersion]
   )
 
   const pushNotification = useCallback((type: Notification['type'], message: string) => {
@@ -349,15 +368,73 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleEscape)
   }, [viewMode])
 
+  const applyPreferencesUpdate = useCallback(
+    async (updates: Partial<UserPreferences>, successMessage?: string) => {
+      const next: UserPreferences = { ...DEFAULT_PREFERENCES, ...userPreferences, ...updates }
+      try {
+        await preferencesGatewayRef.current.savePreferences(next)
+        setUserPreferences(next)
+        if (successMessage) {
+          pushNotification('success', successMessage)
+        }
+        return next
+      } catch (error) {
+        console.error('failed to save preferences', error)
+        pushNotification('error', '設定の保存に失敗しました')
+        throw error
+      }
+    },
+    [pushNotification, userPreferences]
+  )
+
   const filteredCount = filteredSnippets.length
   const isEmptyQuery = query.trim().length === 0
   const selectedSnippet = filteredSnippets[selectedIndex] ?? null
   const isActionPaletteOpen = Boolean(actionSnippet)
 
+  const reinitializeSnippetGateway = useCallback(
+    (directory: string | null) => {
+      if (storageMode !== 'file') return
+      const filePath = buildSnippetStorePath(directory)
+      snippetGatewayRef.current = new FileSnippetDataAccessAdapter({
+        filePath,
+        scope: directory ? undefined : 'appData',
+      })
+      setUseCaseVersion(version => version + 1)
+    },
+    [storageMode]
+  )
+
   const refreshSnippets = useCallback(async () => {
     await updateAvailableTags()
     setDataVersion(version => version + 1)
   }, [updateAvailableTags])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadPreferences = async () => {
+      try {
+        const stored = await preferencesGatewayRef.current.getPreferences()
+        if (cancelled) return
+        const normalized = stored ?? DEFAULT_PREFERENCES
+        setUserPreferences(normalized)
+        dataDirectoryRef.current = normalized.dataDirectory ?? null
+        if (storageMode === 'file') {
+          reinitializeSnippetGateway(normalized.dataDirectory ?? null)
+          await refreshSnippets()
+        }
+      } catch (error) {
+        console.error('failed to load preferences', error)
+      }
+    }
+
+    loadPreferences()
+
+    return () => {
+      cancelled = true
+    }
+  }, [refreshSnippets, reinitializeSnippetGateway, storageMode])
 
   const handleCopySnippet = useCallback(
     async (snippet: Snippet) => {
@@ -418,6 +495,56 @@ const App: React.FC = () => {
   const handleClearTagFilters = useCallback(() => {
     setSelectedTags([])
   }, [])
+
+  const handleShortcutPreferenceChange = useCallback(
+    async (shortcut: string | null) => {
+      await applyPreferencesUpdate(
+        {
+          commandPaletteShortcut: shortcut ?? DEFAULT_PREFERENCES.commandPaletteShortcut ?? null,
+        },
+        'ショートカットを更新しました'
+      )
+    },
+    [applyPreferencesUpdate]
+  )
+
+  const handleManualDirectoryChange = useCallback(
+    async (path: string | null) => {
+      const updated = await applyPreferencesUpdate(
+        {
+          dataDirectory: path,
+        },
+        '保存フォルダを更新しました'
+      )
+      dataDirectoryRef.current = updated.dataDirectory ?? null
+      if (storageMode === 'file') {
+        reinitializeSnippetGateway(updated.dataDirectory ?? null)
+        await refreshSnippets()
+      }
+    },
+    [applyPreferencesUpdate, refreshSnippets, reinitializeSnippetGateway, storageMode]
+  )
+
+  const handleSelectDataDirectory = useCallback(async () => {
+    if (!isNativeDialogAvailable) {
+      pushNotification('error', 'フォルダ選択は Tauri 実行時のみ利用できます')
+      return
+    }
+    setIsSelectingDirectory(true)
+    try {
+      const result = await invokeTauriCommand<string | null>('select_data_directory', {
+        defaultPath: userPreferences.dataDirectory ?? null,
+      })
+      if (typeof result === 'string' && result.length > 0) {
+        await handleManualDirectoryChange(result)
+      }
+    } catch (error) {
+      console.error('failed to select directory', error)
+      pushNotification('error', 'フォルダの選択に失敗しました')
+    } finally {
+      setIsSelectingDirectory(false)
+    }
+  }, [handleManualDirectoryChange, isNativeDialogAvailable, pushNotification, userPreferences.dataDirectory])
 
   useEffect(() => {
     setSelectedIndex(current => {
@@ -568,7 +695,11 @@ const App: React.FC = () => {
         return
       }
 
-      if (modifierActive && event.key === 'Enter') {
+      const shouldOpenActionPalette = eventMatchesShortcut(
+        userPreferences.commandPaletteShortcut ?? DEFAULT_PREFERENCES.commandPaletteShortcut,
+        event
+      )
+      if (shouldOpenActionPalette) {
         event.preventDefault()
         if (selectedSnippet) {
           setActionSnippet(selectedSnippet)
@@ -596,6 +727,7 @@ const App: React.FC = () => {
     handleCopySnippet,
     handleSelectAllLibraries,
     libraries,
+    userPreferences.commandPaletteShortcut,
     selectedIndex,
     selectedSnippet,
     viewMode,
@@ -642,6 +774,7 @@ const App: React.FC = () => {
   const isSecondaryView = viewMode !== 'search'
   const containerClass = viewMode === 'search' ? 'command-surface' : 'command-surface command-surface--panel'
   const viewLabel = viewMode === 'search' ? '' : VIEW_LABELS[viewMode]
+  const commandShortcut = userPreferences.commandPaletteShortcut ?? DEFAULT_PREFERENCES.commandPaletteShortcut ?? null
 
   return (
     <>
@@ -755,8 +888,31 @@ const App: React.FC = () => {
 
           {viewMode === 'settings' ? (
             <div className='command-body'>
-              <SettingsPanel />
+              <SettingsPanel
+                shortcut={commandShortcut}
+                onShortcutChange={handleShortcutPreferenceChange}
+                dataDirectory={userPreferences.dataDirectory ?? null}
+                onDataDirectoryChange={handleManualDirectoryChange}
+                onSelectDirectory={handleSelectDataDirectory}
+                isSelectingDirectory={isSelectingDirectory}
+                canUseNativeDialog={isNativeDialogAvailable}
+                defaultDirectoryLabel='アプリデータ (codespark)'
+              />
             </div>
+          ) : null}
+          {import.meta.env.MODE === 'test' ? (
+            <button
+              type='button'
+              data-testid='test-open-action-palette'
+              style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
+              onClick={() => {
+                if (selectedSnippet) {
+                  setActionSnippet(selectedSnippet)
+                }
+              }}
+            >
+              open palette
+            </button>
           ) : null}
         </div>
       </div>
@@ -799,4 +955,16 @@ const seedInitialSnippets = async (
   for (const snippet of seeds) {
     await gateway.save(snippet)
   }
+}
+
+const joinPathSegments = (base: string, child: string) => {
+  if (!base) return child
+  const normalized = base.replace(/[\\/]+$/, '')
+  const separator = base.includes('\\') ? '\\' : '/'
+  return `${normalized}${separator}${child}`
+}
+
+const buildSnippetStorePath = (directory: string | null) => {
+  if (!directory) return DEFAULT_SNIPPET_FILE_PATH
+  return joinPathSegments(directory, 'snippets.json')
 }

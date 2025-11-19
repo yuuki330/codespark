@@ -10,7 +10,7 @@ CodeSpark はローカルに保存したスニペットを検索・コピーで�
 ## 2. 現在の実装状況
 | 領域 | 実装内容 |
 | --- | --- |
-| UI | 検索バーと結果リストのみのコマンドパレット風ビューを基軸に、`Enter` / `↑↓` / `⌘J,K` で候補操作、`⌘Enter`（Ctrl+Enter）でアクションパレットを開く。`/create` `/list` `/settings` のスラッシュコマンドで専用ビューへ即時遷移し、一覧ではライブラリ/タグフィルタ、設定ではショートカット・保存フォルダ編集用プレースホルダを表示。左上の矢印または ESC で検索ビューへ戻れる。 |
+| UI | 検索バーと結果リストのみのコマンドパレット風ビューを基軸に、`Enter` / `↑↓` / `⌘J,K` で候補操作、`⌘Enter`（Ctrl+Enter）でアクションパレットを開く。`/create` `/list` `/settings` のスラッシュコマンドで専用ビューへ即時遷移し、一覧ではライブラリ/タグフィルタ、設定ではアクションショートカットと保存フォルダパスを編集できる。左上の矢印または ESC で検索ビューへ戻れる。 |
 | ドメイン | `src/core/domain/snippet` に Snippet / Library / Preferences などの型、`constructSnippet`・`applySnippetUpdate`、バリデーションエラー、ReadOnly 例外を集約。 |
 | ユースケース | 検索・空クエリサジェスト・コピー・作成・更新・削除を個別クラスで実装し、`App.tsx` から依存注入。使用履歴とライブラリ保護を含むテストを `src/core/usecases/snippet/*.test.ts` に用意。 |
 | データアクセス | Tauri 実行時は `FileSnippetDataAccessAdapter` を介して `codespark/snippets.json` へ永続化する。ブラウザ開発や Vitest では `InMemorySnippetDataAccessAdapter` を自動利用。`VITE_USE_IN_MEMORY_SNIPPETS=true` で明示的に切り替え可能。 |
@@ -21,7 +21,7 @@ CodeSpark はローカルに保存したスニペットを検索・コピーで�
 
 ## 3. 未実装または今後の課題
 - ⌘Enter でのアクションパレット強化（今後は新規アクションの追加）
-- 設定ビューと Preferences 保存処理の連携（ショートカット・保存フォルダの永続化）
+- Tauri ダイアログによるフォルダ選択結果を即時適用した後の追加 QA（権限確認や OS ごとの差分）
 - ライブラリ別エクスポート / インポート、Git 連携、Preferences など拡張要件の具体化
 - `docs/tasks.md` に残っている残件（高度なフィルタリング、ReadOnly ライブラリに対する Create の保護など）を順次解消
 
@@ -78,3 +78,4 @@ CodeSpark はローカルに保存したスニペットを検索・コピーで�
 - `.env.local` 等で `VITE_USE_IN_MEMORY_SNIPPETS=true` を設定すると、Tauri 実行時でも InMemory モードを強制できる
 - 初回起動でスニペットが存在しない場合は、プロトタイプ用のサンプル 3 件が JSON にシードされる
 - ライブラリ選択は `localStorage` に保存され、次回起動時に自動復元される（All 選択時は `null` を保存）
+- `/settings` で変更したショートカットや保存フォルダの設定は Tauri 実行時に `codespark/preferences.json` へ保存され、ブラウザ/テスト実行時は `localStorage` に保存される

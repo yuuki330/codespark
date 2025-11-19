@@ -1,10 +1,13 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import App from './App'
 
 describe('App', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
   it('allows adding a snippet via the creation form', async () => {
     const user = userEvent.setup()
     render(<App />)
@@ -39,7 +42,8 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await user.keyboard('{Control>}{Enter}{/Control}')
+    const paletteButton = await screen.findByTestId('test-open-action-palette')
+    fireEvent.click(paletteButton)
     await screen.findByRole('dialog', { name: 'アクションパレット' })
     await user.keyboard('{Enter}')
 
@@ -61,7 +65,8 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await user.keyboard('{Control>}{Enter}{/Control}')
+    const paletteButton = await screen.findByTestId('test-open-action-palette')
+    fireEvent.click(paletteButton)
     await screen.findByRole('dialog', { name: 'アクションパレット' })
     await user.keyboard('{ArrowDown}')
     await user.keyboard('{Enter}')
@@ -80,7 +85,8 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await user.keyboard('{Control>}{Enter}{/Control}')
+    const paletteButton = await screen.findByTestId('test-open-action-palette')
+    fireEvent.click(paletteButton)
     await screen.findByRole('dialog', { name: 'アクションパレット' })
 
     await user.keyboard('{Escape}')
@@ -139,5 +145,40 @@ describe('App', () => {
     await waitFor(() =>
       expect(screen.getByPlaceholderText(/スニペットを検索/)).toBeInTheDocument()
     )
+  })
+
+  it('updates the action shortcut preference from settings', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const searchInput = screen.getByPlaceholderText(/スニペットを検索/)
+    await user.type(searchInput, '/settings')
+
+    const manualInput = await screen.findByLabelText('ショートカット文字列を直接入力')
+    await user.clear(manualInput)
+    await user.type(manualInput, 'Ctrl+Shift+K')
+    await user.click(screen.getByRole('button', { name: 'ショートカットを保存' }))
+
+    await waitFor(() => {
+      const stored = window.localStorage.getItem('codespark.preferences')
+      expect(stored).not.toBeNull()
+      expect(stored).toContain('Ctrl+Shift+K')
+    })
+  })
+
+  it('saves a custom data directory path', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const searchInput = screen.getByPlaceholderText(/スニペットを検索/)
+    await user.type(searchInput, '/settings')
+
+    const folderInput = await screen.findByLabelText('保存フォルダパス')
+    await user.clear(folderInput)
+    await user.type(folderInput, '/tmp/codespark-data')
+    await user.click(screen.getByRole('button', { name: 'パスを保存' }))
+
+    const stored = window.localStorage.getItem('codespark.preferences')
+    expect(stored).toContain('/tmp/codespark-data')
   })
 })

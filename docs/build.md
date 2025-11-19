@@ -30,6 +30,8 @@ CodeSpark のデスクトップバンドルは Tauri 2.x を利用しており�
   - [Visual Studio Build Tools 2022](https://learn.microsoft.com/visualstudio/install/build-tools) の「Desktop development with C++」をインストール
   - WebView2 Runtime（Edge に同梱されていなければ [公式ページ](https://developer.microsoft.com/microsoft-edge/webview2/) から導入）
   - `winget install Rustlang.Rustup` などで `rustup` を導入し、`rustup target add x86_64-pc-windows-msvc`
+  - MSI を生成する場合は [WiX Toolset](https://wixtoolset.org/) v5 以降をインストール（`wix.exe` が PATH に通っている必要あり）
+  - NSIS インストーラを生成する場合は [NSIS](https://nsis.sourceforge.io/Download) をインストールして PATH を設定
 - **手順**
   1. PowerShell で `npm install`
   2. `npm run tauri build`

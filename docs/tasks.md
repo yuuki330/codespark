@@ -17,6 +17,7 @@
 - [x] [P1] Team ライブラリを `isReadOnly` として扱い、書き込み系 API で保護する仕組みを実装する。
 - [ ] [P2] 将来の Git / Remote 接続を見据えて、DI で差し替え可能なファクトリ関数を設計する。
 - [ ] [P1] ストレージのファイルレイアウト（保存先パス、JSON スキーマ）を docs/ かコメントで説明し、移行時の参考にする（現状 README/設計に概要のみ記載）。
+- [x] [P0] UI から `FileSnippetDataAccessAdapter` を利用できるようにし、Tauri 実行時は JSON ストア、ブラウザ/テスト時は InMemory を自動切り替え（`VITE_USE_IN_MEMORY_SNIPPETS` で手動切替）できるようにする。
 
 ## ユースケース
 - [x] [P0] `SearchSnippetsUseCase` を実装し、クエリ・ライブラリ・タグ条件を受け、デザイン記載のスコアリングルールを網羅する。

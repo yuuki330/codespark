@@ -13,13 +13,12 @@ CodeSpark はローカルに保存したスニペットを検索・コピーで�
 | UI | 検索バー、ライブラリ/タグフィルタ、スニペット一覧、通知、作成フォーム、編集フォームを分割配置。`Enter` / `↑↓` / `⌘J,K` で候補操作。空クエリではお気に入り + 最近利用を `GetTopSnippetsForEmptyQueryUseCase` 経由で提示。 |
 | ドメイン | `src/core/domain/snippet` に Snippet / Library / Preferences などの型、`constructSnippet`・`applySnippetUpdate`、バリデーションエラー、ReadOnly 例外を集約。 |
 | ユースケース | 検索・空クエリサジェスト・コピー・作成・更新・削除を個別クラスで実装し、`App.tsx` から依存注入。使用履歴とライブラリ保護を含むテストを `src/core/usecases/snippet/*.test.ts` に用意。 |
-| データアクセス | 既定は `InMemorySnippetDataAccessAdapter`。Tauri の JSON 読み書きコマンドを叩く `FileSnippetDataAccessAdapter` も実装済（UI への切替は未着手）。両者とも `SnippetDataAccessAdapter` / `SnippetLibraryDataAccessAdapter` を満たす。 |
+| データアクセス | Tauri 実行時は `FileSnippetDataAccessAdapter` を介して `codespark/snippets.json` へ永続化する。ブラウザ開発や Vitest では `InMemorySnippetDataAccessAdapter` を自動利用。`VITE_USE_IN_MEMORY_SNIPPETS=true` で明示的に切り替え可能。 |
 | プラットフォーム | `TauriClipboardGateway` が `copy_snippet_to_clipboard` コマンドを呼び出し、Rust 側で OS ごとのコマンドを実行。 |
 | Rust / Tauri | `src-tauri/src/lib.rs` に clipboard + JSON ストア操作コマンド、`src-tauri/permissions/*.json` にコマンドごとの権限を明示。capability `default` でウィンドウへ付与。 |
 | テスト | React UI（`App.test.tsx`）、`SnippetForm`、各ユースケースのユニットテストを Vitest + RTL で実行。`src/test/setup.ts` で共通セットアップ。 |
 
 ## 3. 未実装または今後の課題
-- `FileSnippetDataAccessAdapter` を UI に組み込み、実際に JSON ファイルへ保存するフローを確立する
 - ライブラリ一覧取得 (`GetAllLibrariesUseCase`)・アクティブ切替 (`SwitchActiveLibraryUseCase`) をユースケースとして実装し、UI から利用する
 - ⌘Enter など追加アクション、トーストでの詳細エラー表示などキーバインド強化
 - ライブラリ別エクスポート / インポート、Git 連携、Preferences など拡張要件の具体化
@@ -71,3 +70,9 @@ CodeSpark はローカルに保存したスニペットを検索・コピーで�
 2. 変更は 1 トピック 1 PR を徹底し、必要なら issue を紐付ける
 3. コード変更に伴う仕様変更は必ず関連ドキュメントにも反映
 4. クリップボードやファイル権限など OS 依存機能を触る場合は、意図を共有してから作業
+
+## 10. ストレージ設定メモ
+- Tauri で実行している場合は自動的にファイルストレージ（`appData/codespark/snippets.json`）を利用する
+- `npm run dev` などブラウザのみで起動する場合や Vitest 実行時は InMemory ストアへフォールバックする
+- `.env.local` 等で `VITE_USE_IN_MEMORY_SNIPPETS=true` を設定すると、Tauri 実行時でも InMemory モードを強制できる
+- 初回起動でスニペットが存在しない場合は、プロトタイプ用のサンプル 3 件が JSON にシードされる

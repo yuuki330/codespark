@@ -34,6 +34,7 @@ import {
   SnippetForm,
   type SnippetFormValues,
   SnippetEditor,
+  type SnippetEditorHandle,
 } from './components'
 
 import './App.css'
@@ -150,6 +151,7 @@ const App: React.FC = () => {
   )
   const preferencesGatewayRef = useRef<UserPreferencesGateway>(new LocalStorageUserPreferencesGateway())
   const clipboardGatewayRef = useRef(new TauriClipboardGateway())
+  const snippetEditorRef = useRef<SnippetEditorHandle | null>(null)
   const copySnippetUseCase = useMemo(
     () =>
       new CopySnippetUseCase({
@@ -450,7 +452,15 @@ const App: React.FC = () => {
         return
       }
 
-      if (event.key === 'Enter' && !event.shiftKey) {
+      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+        event.preventDefault()
+        if (filteredSnippets[selectedIndex]) {
+          snippetEditorRef.current?.focusTitle()
+        }
+        return
+      }
+
+      if (event.key === 'Enter' && !event.shiftKey && !modifierActive) {
         const snippet = filteredSnippets[selectedIndex]
         if (snippet) {
           event.preventDefault()
@@ -616,6 +626,7 @@ const App: React.FC = () => {
 
           <div className='editor-panel'>
             <SnippetEditor
+              ref={snippetEditorRef}
               snippet={selectedSnippet}
               libraries={libraries}
               onSubmit={handleUpdateSnippet}

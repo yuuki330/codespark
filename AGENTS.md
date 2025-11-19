@@ -148,7 +148,7 @@ Codex は Git 操作をする際、以下のルールに必ず従うこと：
 
 * 新しい作業ブランチを切る前に Codex 自身が `git fetch -p` を実行してリモート追跡ブランチを最新化し、`git branch -r` などで状況を確認する。リモートから削除されたブランチがあればローカルでも `git branch -d` 等で必ず削除する。
 
-* PR を作成したり変更を push する前に `npm run test` と `npm run build` をローカルで必ず成功させ、その結果を PR 本文に記載すること（CI トラブル防止）
+* PR を作成したり変更を push する前に `npm run test` と `npm run build`、さらに Rust 側の `cargo test` をローカルで必ず成功させ、その結果を PR 本文に記載すること（CI トラブル防止）
 * PR を作成・更新する前にローカルで `npm run build` を実行し、TypeScript ビルドと Vite ビルドが通ることを必ず確認する。
 
 ### コミット

@@ -499,6 +499,7 @@ const App: React.FC = () => {
       }
 
       if (viewMode !== 'search') return
+      if (actionSnippet) return
       if (filteredCount === 0) return
 
       const isNextByLetter = (event.key === 'j' || event.key === 'J') && modifierActive
@@ -537,7 +538,18 @@ const App: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [filteredCount, filteredSnippets, handleCopySnippet, handleSelectAllLibraries, libraries, selectedIndex, selectedSnippet, viewMode, pushNotification])
+  }, [
+    actionSnippet,
+    filteredCount,
+    filteredSnippets,
+    handleCopySnippet,
+    handleSelectAllLibraries,
+    libraries,
+    selectedIndex,
+    selectedSnippet,
+    viewMode,
+    pushNotification,
+  ])
 
   useEffect(() => {
     if (viewMode !== 'search' && actionSnippet) {

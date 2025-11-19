@@ -4,11 +4,11 @@
 CodeSpark はクリーンアーキテクチャ志向で、`src/core/` にドメイン・ユースケース・データアクセス・プラットフォーム層を集約している。React UI (`App.tsx` + `src/components/`) はユースケースを呼び出す薄いプレゼンタ、Tauri (`src-tauri/`) はクリップボードとファイルシステムのゲートウェイを担当する。
 
 ```
-React UI ──▶ UseCases ──▶ Domain ──▶ Ports ──▶ Data Access / Platform ──▶ Tauri Commands
+React UI ──▶ UseCases ──▶ Domain ＋ Ports ◀── Data Access / Platform ──▶ Tauri Commands
 ```
 
-- 依存方向は UI → UseCase → Domain → Port で一方向
-- Data Access / Platform 実装は Port を満たし、DI で差し替え可能
+- 依存方向は **外側から内側へ一方向**。Ports は Domain モジュールが公開する「境界インターフェース」であり、実装（Data Access / Platform）がこれに依存して実装される
+- Domain は Ports の実装に依存しない（Clean Architecture の“内側が外側を知らない”ルールを維持）
 - Rust コマンドは @tauri-apps/api を介して呼び出す
 
 ## 2. レイヤー別詳細
@@ -17,7 +17,7 @@ React UI ──▶ UseCases ──▶ Domain ──▶ Ports ──▶ Data Acce
 - `domain-values`: SnippetId / LibraryId / TagName の型エイリアス
 - `converters`: `constructSnippet`, `applySnippetUpdate`。バリデーションや ReadOnly 例外を管理
 - `errors`: SnippetValidationError, SnippetNotFoundError, ClipboardCopyError, ReadOnlyLibraryViolationError
-- `ports`: `SnippetDataAccessAdapter`, `SnippetLibraryDataAccessAdapter`, `ClipboardGateway`
+- `ports`: Domain が公開する境界インターフェース（`SnippetDataAccessAdapter` / `SnippetLibraryDataAccessAdapter` / `ClipboardGateway`）。外側の層はこれに依存して実装される
 
 ### 2.2 UseCases (`src/core/usecases/snippet`)
 - `SearchSnippetsUseCase`: スコアリング + 空クエリ委譲

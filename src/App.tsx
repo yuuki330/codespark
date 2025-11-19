@@ -173,6 +173,7 @@ const App: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [userPreferences, setUserPreferences] = useState<UserPreferences>(DEFAULT_PREFERENCES)
   const [isSelectingDirectory, setIsSelectingDirectory] = useState(false)
+  const [useCaseVersion, setUseCaseVersion] = useState(0)
   const searchInputRef = useRef<SearchInputHandle | null>(null)
   const snippetGatewayRef = useRef<SnippetGateway>(
     storageMode === 'memory'
@@ -204,11 +205,11 @@ const App: React.FC = () => {
         snippetGateway: snippetGatewayRef.current,
         clipboardGateway: clipboardGatewayRef.current,
       }),
-    []
+    [useCaseVersion]
   )
   const getTopSnippetsUseCase = useMemo(
     () => new GetTopSnippetsForEmptyQueryUseCase({ snippetGateway: snippetGatewayRef.current }),
-    []
+    [useCaseVersion]
   )
   const createSnippetUseCase = useMemo(
     () =>
@@ -216,7 +217,7 @@ const App: React.FC = () => {
         snippetGateway: snippetGatewayRef.current,
         generateId: generateSnippetId,
       }),
-    []
+    [useCaseVersion]
   )
   const searchSnippetsUseCase = useMemo(
     () =>
@@ -229,7 +230,7 @@ const App: React.FC = () => {
             limit: params.limit,
           }),
       }),
-    [getTopSnippetsUseCase]
+    [getTopSnippetsUseCase, useCaseVersion]
   )
   const updateSnippetUseCase = useMemo(
     () =>
@@ -237,7 +238,7 @@ const App: React.FC = () => {
         snippetGateway: snippetGatewayRef.current,
         libraryGateway: snippetGatewayRef.current,
       }),
-    []
+    [useCaseVersion]
   )
   const deleteSnippetUseCase = useMemo(
     () =>
@@ -245,11 +246,11 @@ const App: React.FC = () => {
         snippetGateway: snippetGatewayRef.current,
         libraryGateway: snippetGatewayRef.current,
       }),
-    []
+    [useCaseVersion]
   )
   const getLibrariesUseCase = useMemo(
     () => new GetLibrariesUseCase({ libraryGateway: snippetGatewayRef.current }),
-    []
+    [useCaseVersion]
   )
   const getActiveLibraryUseCase = useMemo(
     () => new GetActiveLibraryUseCase({ preferencesGateway: preferencesGatewayRef.current }),
@@ -261,7 +262,7 @@ const App: React.FC = () => {
         libraryGateway: snippetGatewayRef.current,
         preferencesGateway: preferencesGatewayRef.current,
       }),
-    []
+    [useCaseVersion]
   )
 
   const pushNotification = useCallback((type: Notification['type'], message: string) => {
@@ -399,6 +400,7 @@ const App: React.FC = () => {
         filePath,
         scope: directory ? undefined : 'appData',
       })
+      setUseCaseVersion(version => version + 1)
     },
     [storageMode]
   )

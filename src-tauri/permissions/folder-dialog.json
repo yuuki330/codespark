@@ -1,0 +1,15 @@
+{
+  "default": null,
+  "permission": [
+    {
+      "identifier": "folder-dialog",
+      "description": "Allow selecting a directory via native dialog",
+      "commands": {
+        "allow": [
+          "select_data_directory"
+        ],
+        "deny": []
+      }
+    }
+  ]
+}

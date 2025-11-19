@@ -174,6 +174,7 @@ fn scope_to_base_directory(scope: Option<String>) -> BaseDirectory {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             greet,
             copy_snippet_to_clipboard,

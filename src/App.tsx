@@ -132,7 +132,7 @@ const App: React.FC = () => {
     shouldUseInMemoryStorage() ? 'memory' : 'file'
   )
   const [query, setQuery] = useState('')
-  const [filteredSnippets, setFilteredSnippets] = useState<Snippet[]>([])
+  const [filteredSnippets, setFilteredSnippets] = useState<Snippet[]>(initialSnippets)
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [copiedSnippetId, setCopiedSnippetId] = useState<string | null>(null)
   const [libraries, setLibraries] = useState<SnippetLibrary[]>([])

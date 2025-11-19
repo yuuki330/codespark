@@ -10,7 +10,7 @@ CodeSpark はローカルに保存したスニペットを検索・コピーで�
 ## 2. 現在の実装状況
 | 領域 | 実装内容 |
 | --- | --- |
-| UI | 検索バー、ライブラリ/タグフィルタ、スニペット一覧、通知、作成フォーム、編集フォームを分割配置。`Enter` / `↑↓` / `⌘J,K` で候補操作。空クエリではお気に入り + 最近利用を `GetTopSnippetsForEmptyQueryUseCase` 経由で提示。 |
+| UI | 検索バー、ライブラリ/タグフィルタ、スニペット一覧、通知、作成フォーム、編集フォームを分割配置。`Enter` / `↑↓` / `⌘J,K` で候補操作、`⌘Enter`（Ctrl+Enter）でエディタにフォーカス。空クエリではお気に入り + 最近利用を `GetTopSnippetsForEmptyQueryUseCase` 経由で提示。 |
 | ドメイン | `src/core/domain/snippet` に Snippet / Library / Preferences などの型、`constructSnippet`・`applySnippetUpdate`、バリデーションエラー、ReadOnly 例外を集約。 |
 | ユースケース | 検索・空クエリサジェスト・コピー・作成・更新・削除を個別クラスで実装し、`App.tsx` から依存注入。使用履歴とライブラリ保護を含むテストを `src/core/usecases/snippet/*.test.ts` に用意。 |
 | データアクセス | Tauri 実行時は `FileSnippetDataAccessAdapter` を介して `codespark/snippets.json` へ永続化する。ブラウザ開発や Vitest では `InMemorySnippetDataAccessAdapter` を自動利用。`VITE_USE_IN_MEMORY_SNIPPETS=true` で明示的に切り替え可能。 |

@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react'
 
 import type { Snippet, SnippetId, SnippetLibrary } from '../core/domain/snippet'
 import type { SnippetFormValues } from './SnippetForm'
@@ -17,8 +25,13 @@ const normalizeTags = (raw: string): string[] => {
     .filter(tag => tag.length > 0)
 }
 
-export function SnippetEditor({ snippet, libraries, onSubmit, onDelete }: SnippetEditorProps) {
-  const [title, setTitle] = useState('')
+export type SnippetEditorHandle = {
+  focusTitle: () => void
+}
+
+export const SnippetEditor = forwardRef<SnippetEditorHandle, SnippetEditorProps>(
+  ({ snippet, libraries, onSubmit, onDelete }, ref) => {
+    const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [tagsInput, setTagsInput] = useState('')
   const [language, setLanguage] = useState('')
@@ -30,7 +43,17 @@ export function SnippetEditor({ snippet, libraries, onSubmit, onDelete }: Snippe
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+    const titleInputRef = useRef<HTMLInputElement | null>(null)
+
+    useImperativeHandle(ref, () => ({
+      focusTitle: () => {
+        if (titleInputRef.current) {
+          titleInputRef.current.focus()
+        }
+      },
+    }))
+
+    useEffect(() => {
     if (!snippet) {
       setTitle('')
       setBody('')
@@ -56,15 +79,15 @@ export function SnippetEditor({ snippet, libraries, onSubmit, onDelete }: Snippe
     setError(null)
   }, [snippet])
 
-  const currentLibrary = useMemo(() => {
+    const currentLibrary = useMemo(() => {
     if (!snippet) return null
     return libraries.find(library => library.id === snippet.libraryId) ?? null
   }, [libraries, snippet])
 
-  const isReadOnly = currentLibrary?.isReadOnly ?? false
-  const formDisabled = !snippet || isReadOnly || submitting || deleting
+    const isReadOnly = currentLibrary?.isReadOnly ?? false
+    const formDisabled = !snippet || isReadOnly || submitting || deleting
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!snippet || isReadOnly) return
 
@@ -100,7 +123,7 @@ export function SnippetEditor({ snippet, libraries, onSubmit, onDelete }: Snippe
     }
   }
 
-  const handleDelete = async () => {
+    const handleDelete = async () => {
     if (!snippet || isReadOnly) return
     setDeleting(true)
     setError(null)
@@ -117,7 +140,7 @@ export function SnippetEditor({ snippet, libraries, onSubmit, onDelete }: Snippe
     }
   }
 
-  return (
+    return (
     <div className='snippet-editor'>
       <div className='snippet-form__header'>
         <div>
@@ -156,6 +179,7 @@ export function SnippetEditor({ snippet, libraries, onSubmit, onDelete }: Snippe
           <label className='snippet-form__field'>
             <span>タイトル (編集) *</span>
             <input
+              ref={titleInputRef}
               type='text'
               value={title}
               onChange={event => setTitle(event.target.value)}
@@ -249,5 +273,8 @@ export function SnippetEditor({ snippet, libraries, onSubmit, onDelete }: Snippe
         ) : null}
       </form>
     </div>
-  )
-}
+    )
+  }
+)
+
+SnippetEditor.displayName = 'SnippetEditor'

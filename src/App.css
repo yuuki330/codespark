@@ -27,7 +27,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: #050915;
+  background: linear-gradient(135deg, #0a1222 0%, #050915 45%, #0a1222 100%);
   color: #e5e7eb;
 }
 
@@ -48,9 +48,9 @@ body {
   padding: 6px 8px;
   border-radius: 14px;
   border: none;
-  background: transparent;
-  box-shadow: none;
-  backdrop-filter: none;
+  background: linear-gradient(180deg, rgba(10, 16, 28, 0.92) 0%, rgba(7, 11, 22, 0.88) 100%);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
 }
 
 .search-bar {

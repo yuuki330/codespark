@@ -15,7 +15,8 @@
         "title": "codespark",
         "width": 800,
         "height": 450,
-        "decorations": false
+        "decorations": false,
+        "transparent": true
       }
     ],
     "security": {

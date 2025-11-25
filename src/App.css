@@ -31,6 +31,10 @@ body {
   color: #e5e7eb;
 }
 
+.app-shell[data-tauri-drag-region='true'] {
+  -webkit-app-region: drag;
+}
+
 .app-shell {
   min-height: 100vh;
   display: flex;
@@ -40,6 +44,7 @@ body {
 }
 
 .command-surface {
+  -webkit-app-region: no-drag;
   width: 760px;
   max-width: 96vw;
   display: flex;

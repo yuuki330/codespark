@@ -778,8 +778,8 @@ const App: React.FC = () => {
 
   return (
     <>
-      <div className='app-shell'>
-        <div className={containerClass}>
+      <div className='app-shell' data-tauri-drag-region='true'>
+        <div className={containerClass} data-tauri-drag-region='false'>
           {isSecondaryView ? (
             <div className='view-toolbar'>
               <button className='back-button' type='button' onClick={exitToSearch} aria-label='検索画面に戻る'>
